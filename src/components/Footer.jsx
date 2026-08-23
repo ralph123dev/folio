@@ -12,7 +12,7 @@ const Footer = () => {
               Folio
             </a>
             <p className="text-body-custom mb-4" style={{ fontSize: '0.95rem' }}>
-              La plateforme d'analytics conçue spécifiquement pour les développeurs. Comprends ton audience et développe ta marque personnelle.
+              La plateforme d'analytics conçue spécifiquement pour les développeurs et tout autres travailleurs dans le monde digital. Comprends ton audience et développe ta marque personnelle.
             </p>
             <div className="d-flex gap-3">
               <a href="#" className="text-body-custom text-decoration-none fs-5" aria-label="Facebook"><i className="bi bi-facebook"></i></a>

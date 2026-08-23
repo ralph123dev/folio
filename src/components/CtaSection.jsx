@@ -17,9 +17,6 @@ const CtaSection = ({ onStart }) => {
               Voir une démo
             </button>
           </div>
-          <p className="small mt-4 mb-0 text-body-custom" style={{ opacity: 0.8 }}>
-            14 jours d'essai gratuit. Annulation à tout moment.
-          </p>
         </div>
       </div>
     </section>

@@ -104,6 +104,74 @@ html {
   scroll-behavior: smooth;
 }
 
+.pricing-card {
+  border: 1px solid rgba(83, 74, 183, 0.12);
+  border-radius: 12px;
+  background: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(38, 33, 92, 0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.pricing-card:hover {
+  box-shadow: 0 16px 32px rgba(38, 33, 92, 0.12);
+  transform: translateY(-6px);
+}
+
+.pricing-card-featured {
+  border-color: var(--folio-primary);
+  box-shadow: 0 12px 30px rgba(83, 74, 183, 0.16);
+}
+
+.pricing-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  color: var(--folio-primary);
+  background: #EEEDFE;
+  font-size: 1.35rem;
+}
+
+.pricing-badge {
+  padding: 0.5rem 0.7rem;
+  color: var(--folio-primary);
+  background: #EEEDFE;
+  font-weight: 500;
+}
+
+.pricing-price {
+  color: var(--folio-title);
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.pricing-price small {
+  color: var(--folio-text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.folio-video-section {
+  scroll-margin-top: 2rem;
+}
+
+.folio-video-frame {
+  overflow: hidden;
+  border: 1px solid rgba(83, 74, 183, 0.14);
+  border-radius: 12px;
+  background: #26215C;
+  box-shadow: 0 16px 34px rgba(38, 33, 92, 0.14);
+}
+
+.folio-video-frame video {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
 .auth-page {
   background: linear-gradient(135deg, #EEF1FB 0%, #F8F7FC 55%, #E7E4FA 100%);
 }

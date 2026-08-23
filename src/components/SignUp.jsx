@@ -1,21 +1,20 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import googleLogo from '../assets/google.jpg';
-import githubLogo from '../assets/github.jpg';
 import './auth.css';
 
 export default function SignUp({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  const handleOAuth = async (provider) => {
+  const handleOAuth = async () => {
     setServerError('');
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider,
+      provider: 'google',
       options: {
         redirectTo: window.location.origin,
-        queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
+        queryParams: { prompt: 'select_account' },
       },
     });
     if (error) {
@@ -26,20 +25,25 @@ export default function SignUp({ onLogin }) {
 
   return (
     <div className="folio-auth-wrapper folio-auth-enter">
-      <div className="folio-auth-card">
+      <div className="folio-auth-card text-center">
         <p className="folio-auth-eyebrow folio-auth-item">Folio</p>
         <h1 className="folio-auth-title folio-auth-item">Crée ton compte</h1>
         <p className="folio-auth-subtitle folio-auth-item">Connecte ton portfolio et commence à suivre son trafic dès aujourd'hui.</p>
+        
         {serverError && <div className="folio-error-text mb-3" role="alert">{serverError}</div>}
-        <div className="d-grid gap-2 folio-auth-item">
-          <button type="button" className="folio-social-btn" onClick={() => handleOAuth('google')} disabled={loading}>
+
+        <div className="d-grid gap-2 folio-auth-item mb-4">
+          <button type="button" className="folio-social-btn py-2.5" onClick={handleOAuth} disabled={loading}>
             <img src={googleLogo} alt="" width="20" height="20" /> S'inscrire avec Google
           </button>
-          <button type="button" className="folio-social-btn" onClick={() => handleOAuth('github')} disabled={loading}>
-            <img src={githubLogo} alt="" width="20" height="20" /> S'inscrire avec GitHub
-          </button>
         </div>
-        <p className="folio-auth-footer-text folio-auth-item">Déjà un compte ? <button type="button" className="btn btn-link p-0 align-baseline" onClick={onLogin}>Se connecter</button></p>
+
+        <p className="folio-auth-footer-text folio-auth-item mb-0">
+          Déjà un compte ?{' '}
+          <button type="button" className="btn btn-link p-0 align-baseline fw-medium text-primary text-decoration-none" onClick={onLogin}>
+            Se connecter
+          </button>
+        </p>
       </div>
     </div>
   );
