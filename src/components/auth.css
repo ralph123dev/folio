@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500&display=swap');
+
+.folio-auth-wrapper {
+    min-height: 100vh;
+    background: #EEF1FB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.folio-auth-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 2.5rem 2.5rem 2rem;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(38, 33, 92, 0.06);
+}
+
+.folio-auth-eyebrow {
+    font-size: 13px;
+    color: #534AB7;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+}
+
+.folio-auth-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 28px;
+    color: #26215C;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.folio-auth-subtitle {
+    font-size: 14px;
+    color: #3C3489;
+    margin-bottom: 1.75rem;
+    line-height: 1.5;
+}
+
+.folio-form-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #26215C;
+    margin-bottom: 6px;
+}
+
+.folio-form-control {
+    border: 1px solid #D3D1C7;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    background: #FDFDFF;
+    transition: border-color 0.15s ease;
+}
+
+.folio-form-control:focus {
+    border-color: #534AB7;
+    box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.12);
+    outline: none;
+}
+
+.folio-form-control.is-invalid {
+    border-color: #E24B4A;
+}
+
+.folio-error-text {
+    font-size: 12px;
+    color: #A32D2D;
+    margin-top: 4px;
+}
+
+.folio-btn-primary {
+    background: #534AB7;
+    color: #EEEDFE;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    width: 100%;
+    transition: background 0.15s ease;
+}
+
+.folio-btn-primary:hover {
+    background: #3C3489;
+    color: #EEEDFE;
+}
+
+.folio-btn-primary:disabled {
+    background: #AFA9EC;
+    cursor: not-allowed;
+}
+
+.folio-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 1.5rem 0;
+    color: #888780;
+    font-size: 13px;
+}
+
+.folio-divider::before,
+.folio-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #E5E3F5;
+}
+
+.folio-auth-footer-text {
+    text-align: center;
+    font-size: 14px;
+    color: #3C3489;
+    margin-top: 1.5rem;
+}
+
+.folio-auth-footer-text a {
+    color: #534AB7;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.folio-auth-footer-text a:hover {
+    text-decoration: underline;
+}
+
+.folio-auth-enter .folio-auth-card {
+    animation: auth-card-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.folio-auth-item {
+    animation: auth-item-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.folio-auth-item:nth-child(1) { animation-delay: 0.12s; }
+.folio-auth-item:nth-child(2) { animation-delay: 0.19s; }
+.folio-auth-item:nth-child(3) { animation-delay: 0.26s; }
+.folio-auth-item:nth-child(4) { animation-delay: 0.33s; }
+.folio-auth-item:nth-child(5) { animation-delay: 0.40s; }
+
+@keyframes auth-card-enter {
+    from { opacity: 0; transform: translateY(24px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes auth-item-enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .folio-auth-enter .folio-auth-card,
+    .folio-auth-item {
+        animation: none;
+    }
+}
+
+.folio-social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #D3D1C7;
+    border-radius: 8px;
+    color: #26215C;
+    background: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.folio-social-btn img {
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.folio-social-btn:hover:not(:disabled) {
+    border-color: #534AB7;
+    background: #F8F7FF;
+    transform: translateY(-1px);
+}
+
+.folio-social-btn:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}

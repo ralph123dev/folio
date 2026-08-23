@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+:root {
+  --folio-bg: #EEF1FB;
+  --folio-title: #26215C;
+  --folio-text: #3C3489;
+  --folio-primary: #534AB7;
+  --folio-secondary-1: #8B5CF6;
+  --folio-secondary-2: #7F77DD;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--folio-bg);
+  color: var(--folio-text);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
+  font-family: 'Playfair Display', serif;
+  color: var(--folio-title);
+}
+
+.text-title {
+  color: var(--folio-title) !important;
+}
+
+.text-body-custom {
+  color: var(--folio-text) !important;
+}
+
+/* Custom Buttons */
+.btn-primary-custom {
+  background-color: var(--folio-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary-custom:hover {
+  background-color: var(--folio-primary);
+  opacity: 0.9;
+  color: white;
+}
+
+.btn-outline-custom {
+  background-color: transparent;
+  color: var(--folio-primary);
+  border: 1px solid var(--folio-primary);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-custom:hover {
+  background-color: var(--folio-primary);
+  color: white;
+}
+
+/* SVG Path Animation (optional smooth draw effect) */
+.path-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawPath 3s ease forwards;
+}
+
+@keyframes drawPath {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Splash screen animation */
+.fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scroll Reveal Animations */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+
+.auth-page {
+  background: linear-gradient(135deg, #EEF1FB 0%, #F8F7FC 55%, #E7E4FA 100%);
+}
+
+.auth-back,
+.auth-switch {
+  color: var(--folio-primary);
+  text-decoration: none;
+}
+
+.auth-back:hover,
+.auth-switch:hover {
+  color: var(--folio-title);
+}
+
+.auth-eyebrow {
+  color: var(--folio-secondary-2);
+  letter-spacing: .12em;
+}
+
+.auth-choice {
+  min-height: 270px;
+  padding: 2rem;
+  border: 1px solid var(--folio-primary);
+  border-radius: 8px;
+  color: white;
+  background: var(--folio-primary);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.auth-choice:hover {
+  color: white;
+  box-shadow: 0 1rem 2rem rgba(83, 74, 183, .2);
+  transform: translateY(-5px);
+}
+
+.auth-choice-light {
+  color: var(--folio-title);
+  background: rgba(255, 255, 255, .65);
+}
+
+.auth-choice-light:hover {
+  color: var(--folio-title);
+}
+
+.auth-number {
+  color: #DAD7FF;
+  font-family: 'Inter', sans-serif;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.auth-choice-light .auth-number {
+  color: var(--folio-primary);
+}
+
+.auth-choice-arrow {
+  font-size: 1.5rem;
+}
+
+.auth-form {
+  max-width: 500px;
+  padding: 2.5rem;
+  border: 1px solid rgba(83, 74, 183, .15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .78);
+  box-shadow: 0 1rem 3rem rgba(38, 33, 92, .08);
+}
