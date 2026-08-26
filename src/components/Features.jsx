@@ -1,5 +1,82 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import folioVideo from '../assets/folio.mp4';
+
+const featureCards = [
+  { visual: 'visual-track', icon: 'bi-activity', title: 'Suivi du trafic', description: "Colle un script sur ton portfolio et vois exactement quelles pages et quels projets retiennent l'attention." },
+  { visual: 'visual-report', icon: 'bi-bar-chart-line', title: 'Rapport hebdomadaire', description: "Chaque dimanche, reçois un résumé clair de l'activité de ton portfolio directement par email." },
+  { visual: 'visual-social', icon: 'bi-stars', title: 'Idées de contenu', description: 'Reçois chaque jour un titre, une description et des hashtags pour ta prochaine vidéo.' },
+  { visual: 'visual-score', icon: 'bi-speedometer2', title: 'Score de visibilité', description: 'Une note simple qui résume la performance globale de ton portfolio, semaine après semaine.' },
+  { visual: 'visual-alert', icon: 'bi-graph-up-arrow', title: 'Alertes de pic de trafic', description: "Sois prévenu dès qu'un afflux inhabituel de visiteurs arrive sur ton portfolio." },
+];
+
+const FeatureCarousel = () => {
+  const trackRef = useRef(null);
+  const dragRef = useRef({ active: false, startX: 0, startScroll: 0 });
+  const [dragging, setDragging] = useState(false);
+
+  const moveByCard = (direction) => {
+    const card = trackRef.current?.querySelector('.folio-feature-card');
+    if (!card) return;
+    const gap = parseFloat(getComputedStyle(trackRef.current).gap) || 0;
+    trackRef.current.scrollBy({ left: direction * (card.offsetWidth + gap), behavior: 'smooth' });
+  };
+
+  const startDrag = (event) => {
+    const point = event.touches?.[0] || event;
+    dragRef.current = { active: true, startX: point.pageX, startScroll: trackRef.current.scrollLeft };
+    setDragging(true);
+  };
+
+  const drag = (event) => {
+    if (!dragRef.current.active) return;
+    const point = event.touches?.[0] || event;
+    trackRef.current.scrollLeft = dragRef.current.startScroll - (point.pageX - dragRef.current.startX);
+  };
+
+  const stopDrag = () => {
+    dragRef.current.active = false;
+    setDragging(false);
+  };
+
+  return (
+    <section className="feature-carousel mt-5 pt-5 border-top reveal">
+      <div className="text-center mb-4 px-3">
+        <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-primary)', letterSpacing: '0.06em', fontSize: '0.8rem' }}>Fonctionnalités Folio</p>
+        <h2 className="display-5 font-serif mb-0">Tout ce qu'il te faut pour comprendre et faire grandir ton portfolio</h2>
+      </div>
+      <div
+        ref={trackRef}
+        className={`feature-carousel-track ${dragging ? 'is-dragging' : ''}`}
+        onMouseDown={startDrag}
+        onMouseMove={drag}
+        onMouseUp={stopDrag}
+        onMouseLeave={stopDrag}
+        onTouchStart={startDrag}
+        onTouchMove={drag}
+        onTouchEnd={stopDrag}
+      >
+        {featureCards.map((card, index) => (
+          <article className="folio-feature-card" key={card.title}>
+            <div className={`feature-card-visual ${card.visual}`}>
+              {index === 0 && <svg viewBox="0 0 260 170" aria-hidden="true"><path d="M 20 130 Q 90 60, 140 90 T 230 60" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeDasharray="1 8" strokeLinecap="round" /><circle cx="20" cy="130" r="5" fill="white" /><circle cx="140" cy="90" r="4" fill="#C9C4F5" /><circle cx="230" cy="60" r="6" fill="#EE7B76" /></svg>}
+              {index === 1 && <div className="mini-terminal"><div>+ 214 visiteurs <span>cette semaine</span></div><div>+ 38% engagement</div><div className="negative">- 12% session mobile</div></div>}
+              {index === 2 && <span className="mini-generate-btn"><i className="bi bi-stars"></i> Générer une idée</span>}
+              {index === 3 && <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="#D6D3EF" strokeWidth="10" /><circle cx="50" cy="50" r="42" fill="none" stroke="#534AB7" strokeWidth="10" strokeDasharray="264" strokeDashoffset="70" strokeLinecap="round" transform="rotate(-90 50 50)" /><text x="50" y="56" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="22" fontWeight="600" fill="#26215C">74</text></svg>}
+              {index === 4 && <svg width="150" height="90" viewBox="0 0 150 90" aria-hidden="true"><polyline points="10,70 40,55 70,60 100,30 140,20" fill="none" stroke="#3E9C5C" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /><circle cx="140" cy="20" r="5" fill="#3E9C5C" /></svg>}
+            </div>
+            <h3 className="feature-card-title">{card.title}</h3>
+            <p className="feature-card-description">{card.description}</p>
+            <a href="#pricing" className="feature-card-link">Apprendre encore plus <span aria-hidden="true">&#8594;</span></a>
+          </article>
+        ))}
+      </div>
+      <div className="feature-carousel-nav" aria-label="Navigation des fonctionnalités">
+        <button type="button" className="feature-nav-btn" onClick={() => moveByCard(-1)} aria-label="Carte précédente">&#8592;</button>
+        <button type="button" className="feature-nav-btn" onClick={() => moveByCard(1)} aria-label="Carte suivante">&#8594;</button>
+      </div>
+    </section>
+  );
+};
 
 const FolioVideo = () => {
   const videoRef = useRef(null);
@@ -114,6 +191,8 @@ const Features = () => {
             </div>
           </div>
         </div>
+
+        <FeatureCarousel />
 
         <div id="pricing" className="pt-5 mt-5 border-top">
           <div className="text-center mb-5 reveal">

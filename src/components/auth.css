@@ -243,4 +243,180 @@
     transform: scale(1.0);
     opacity: 1;
   }
+}
+
+/* Portfolio Optimization Modal */
+.optim-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(38, 33, 92, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: optim-fade-in 0.3s ease;
+}
+
+@keyframes optim-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.optim-modal-container {
+  background: #FFFFFF;
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 25px 50px rgba(38, 33, 92, 0.15);
+  overflow: hidden;
+  animation: optim-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes optim-slide-in {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.optim-step-enter {
+  animation: optim-step-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes optim-step-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.optim-step-exit {
+  animation: optim-step-out 0.2s ease;
+}
+
+@keyframes optim-step-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-20px); }
+}
+
+.optim-success-check {
+  animation: optim-pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+@keyframes optim-pop-in {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.optim-btn-primary {
+  background: #534AB7;
+  color: #EEEDFE;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+
+.optim-btn-primary:hover {
+  background: #3C3489;
+  color: #EEEDFE;
+}
+
+.optim-btn-primary:disabled {
+  background: #AFA9EC;
+  cursor: not-allowed;
+}
+
+.optim-btn-outline {
+  background: transparent;
+  color: #534AB7;
+  border: 1px solid #D3D1C7;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.optim-btn-outline:hover {
+  border-color: #534AB7;
+  background: #F8F7FF;
+}
+
+.optim-progress-bar {
+  height: 6px;
+  background: #F0EFF8;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.optim-progress-fill {
+  height: 100%;
+  background: #534AB7;
+  border-radius: 3px;
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.optim-form-control {
+  border: 1px solid #D3D1C7;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  background: #FDFDFF;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+
+.optim-form-control:focus {
+  border-color: #534AB7;
+  box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.12);
+  outline: none;
+}
+
+.optim-form-control.is-invalid {
+  border-color: #E24B4A;
+}
+
+.optim-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #26215C;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.optim-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.optim-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E5E3F5;
+  transition: all 0.3s ease;
+}
+
+.optim-dot.active {
+  background: #534AB7;
+  width: 24px;
+  border-radius: 4px;
+}
+
+.optim-dot.done {
+  background: #534AB7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .optim-modal-overlay,
+  .optim-modal-container,
+  .optim-step-enter,
+  .optim-step-exit,
+  .optim-success-check {
+    animation: none;
+  }
 }
