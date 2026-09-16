@@ -7,6 +7,7 @@ export default function Dashboard({ userData, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showOptimModal, setShowOptimModal] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
@@ -23,6 +24,9 @@ export default function Dashboard({ userData, onLogout }) {
       if (error) throw error;
       if (data) {
         setProfileData(data);
+        if (data.portfolio_url) {
+          setPortfolioUrl(data.portfolio_url);
+        }
       }
     } catch (err) {
       console.error('Erreur lors du chargement du profil:', err);
@@ -33,6 +37,16 @@ export default function Dashboard({ userData, onLogout }) {
 
   useEffect(() => {
     fetchProfile();
+    const channel = supabase
+      .channel(`profil-paiement-${userData.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profils', filter: `id=eq.${userData.id}` }, (payload) => {
+        setProfileData((previous) => ({ ...previous, ...payload.new }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userData.id]);
 
   const triggerFireworks = () => {
@@ -109,11 +123,8 @@ export default function Dashboard({ userData, onLogout }) {
 
   const handleAnalysis = (event) => {
     event.preventDefault();
-    if (!event.currentTarget.checkValidity()) {
-      event.currentTarget.classList.add('was-validated');
-      return;
-    }
-    alert(`Analyse lancée pour ${portfolioUrl}`);
+    if (!portfolioUrl.trim()) return;
+    setShowAnalysisModal(true);
   };
 
   const handleLogout = async () => {
@@ -150,7 +161,11 @@ export default function Dashboard({ userData, onLogout }) {
                 </li>
                 <li>
                   <button className="dropdown-item py-2 text-primary fw-medium" onClick={() => setShowRechargeModal(true)}>
-                    <i className="bi bi-wallet2 me-2"></i>Recharger mon compte (Dès 3500F)
+                    <i className="bi bi-wallet2 me-2"></i>
+                    <span>{profileData?.solde > 0 ? 'Mon solde' : 'Recharger mon compte'}</span>
+                    <span className="ms-2 fw-bold" style={{ color: 'var(--folio-primary)' }}>
+                      {Number(profileData?.solde || 0).toLocaleString('fr-FR')} F CFA
+                    </span>
                   </button>
                 </li>
                 <li><hr className="dropdown-divider" /></li>
@@ -305,7 +320,15 @@ export default function Dashboard({ userData, onLogout }) {
                 <label htmlFor="portfolio-url" className="form-label text-body-custom small">Entrez le lien de votre portfolio</label>
                 <input id="portfolio-url" type="url" className="form-control" placeholder="https://votreportfolio.com" value={portfolioUrl} onChange={(event) => setPortfolioUrl(event.target.value)} required />
                 <button type="submit" className="btn btn-primary-custom w-100 mt-3">
-                  <i className="bi bi-bar-chart-line me-1"></i>Lancer l'analyse
+                  {profileData?.portfolio_url ? (
+                    <>
+                      <i className="bi bi-rocket-takeoff me-1"></i>Booster mon portfolio et trouver des clients
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-bar-chart-line me-1"></i>Lancer l'analyse
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -416,45 +439,11 @@ export default function Dashboard({ userData, onLogout }) {
       </div>
       {/* Modal de recharge */}
       {showRechargeModal && (
-        <div className="modal fade show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content border-0 shadow" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-              <div className="modal-header border-0 pb-0 px-4 pt-4 d-flex justify-content-between align-items-center">
-                <h5 className="modal-title font-serif fw-bold fs-4 text-title">Recharger mon compte</h5>
-                <button type="button" className="btn-close" onClick={() => setShowRechargeModal(false)} aria-label="Fermer"></button>
-              </div>
-              <div className="modal-body py-4 px-4">
-                <p className="text-body-custom mb-4" style={{ fontSize: '0.95rem' }}>
-                  Accède à toutes les fonctionnalités premium de Folio. Choisis ton pack pour recharger ton solde (à partir de <strong>3500 F CFA</strong>).
-                </p>
-                
-                <div className="d-flex flex-column gap-3 mb-4">
-                  <div className="p-3 rounded-3 d-flex justify-content-between align-items-center" style={{ border: '2px solid var(--folio-primary)', backgroundColor: '#F8F7FF', cursor: 'pointer' }}>
-                    <div>
-                      <span className="badge mb-1" style={{ backgroundColor: 'var(--folio-primary)', color: 'white', fontSize: '0.75rem' }}>Starter</span>
-                      <h6 className="mb-0 fw-bold text-title">Optimisation SEO & Clics</h6>
-                      <small className="text-muted d-block">SEO portfolio et traqueur de clics</small>
-                    </div>
-                    <span className="fw-bold fs-5" style={{ color: 'var(--folio-primary)' }}>3 500 F</span>
-                  </div>
-                  
-                  <div className="p-3 rounded-3 border d-flex justify-content-between align-items-center" style={{ cursor: 'pointer' }}>
-                    <div>
-                      <span className="badge bg-secondary mb-1" style={{ fontSize: '0.75rem' }}>Pro</span>
-                      <h6 className="mb-0 fw-bold text-title">Boost Réseaux & Contacts</h6>
-                      <small className="text-muted d-block">Recommandations et prospection</small>
-                    </div>
-                    <span className="fw-bold fs-5 text-title">7 500 F</span>
-                  </div>
-                </div>
-
-                <button className="btn btn-primary-custom w-100 py-2.5 font-sans" onClick={() => { alert('Redirection vers le service de paiement mobile...'); setShowRechargeModal(false); }}>
-                  Recharger mon compte
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RechargeModal
+          userData={userData}
+          profileData={profileData}
+          onClose={() => setShowRechargeModal(false)}
+        />
       )}
 
       {/* Modal d'optimisation du portfolio */}
@@ -463,13 +452,221 @@ export default function Dashboard({ userData, onLogout }) {
           userId={userData.id}
           initialData={profileData}
           onClose={() => setShowOptimModal(false)}
-          onComplete={() => {
+          onComplete={async () => {
             setShowOptimModal(false);
-            fetchProfile();
+            await fetchProfile();
             triggerFireworks();
           }}
         />
       )}
+
+      {/* Modal d'analyse / boost */}
+      {showAnalysisModal && (
+        <AnalysisModal
+          portfolioUrl={portfolioUrl}
+          onClose={() => setShowAnalysisModal(false)}
+          onComplete={() => {
+            setShowAnalysisModal(false);
+            triggerFireworks();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   MODAL DE RECHARGE — Paiement GeniusPay Mobile Money
+─────────────────────────────────────────────────────────────────── */
+const PACKS = [
+  { id: 'test',    label: 'Compte test', title: 'Recharge de test', desc: 'Accès de test aux fonctionnalités premium', amount: 150 },
+  { id: 'starter', label: 'Starter', title: 'Optimisation SEO & Clics', desc: 'SEO portfolio et traqueur de clics', amount: 3500 },
+  { id: 'pro',     label: 'Pro',     title: 'Boost Réseaux & Contacts', desc: 'Recommandations et prospection',     amount: 7500 },
+];
+
+function RechargeModal({ userData, profileData, onClose }) {
+  const [selectedPack, setSelectedPack] = useState(null);
+  const [phone, setPhone] = useState(profileData?.whatsapp || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handlePayment = async () => {
+    if (!selectedPack) return;
+    if (!phone.trim()) {
+      setError('Veuillez entrer votre numéro de téléphone mobile money.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const orderId = `FOLIO-${userData.id.substring(0, 8)}-${Date.now()}`;
+
+      const { data, error: fnError } = await supabase.functions.invoke('geniuspay-init-payment', {
+        body: {
+          amount: selectedPack.amount,
+          description: `Folio ${selectedPack.label} — ${selectedPack.title}`,
+          customerName: userData.nom_complet || 'Utilisateur Folio',
+          customerEmail: userData.email,
+          customerPhone: phone.trim(),
+          orderId,
+          userId: userData.id,
+        },
+      });
+
+      // Erreur Supabase (réseau, CORS, etc.)
+      if (fnError) {
+        console.error('Supabase function error:', fnError);
+        let providerError = data?.error?.message || data?.message;
+        if (!providerError && fnError.context?.json) {
+          try {
+            const errorBody = await fnError.context.json();
+            providerError = errorBody?.error?.message || errorBody?.message;
+          } catch {
+            // La réponse peut ne pas être du JSON selon le service distant.
+          }
+        }
+        setError(providerError
+          ? `Erreur GeniusPay : ${providerError}`
+          : `Erreur réseau : ${fnError.message || 'Impossible de joindre le serveur.'}`);
+        return;
+      }
+
+      // Erreur renvoyée par l'API GeniusPay via la Edge Function
+      if (data?.error) {
+        console.error('GeniusPay API error:', data.error);
+        setError(`Erreur GeniusPay [${data.error.code || 'UNKNOWN'}] : ${data.error.message || JSON.stringify(data.error)}`);
+        return;
+      }
+
+      // Succès → redirection vers la page de checkout
+      const checkoutUrl = data?.data?.payment_url
+        || data?.payment_url
+        || data?.data?.checkout_url
+        || data?.checkout_url;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        console.error('Réponse inattendue:', data);
+        setError('La réponse du serveur ne contient pas de lien de paiement. Vérifiez la configuration.');
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setError(`Erreur inattendue : ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal fade show d-block"
+      tabIndex="-1"
+      role="dialog"
+      style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 1050 }}
+      onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
+    >
+      <div className="modal-dialog modal-dialog-centered" role="document">
+        <div className="modal-content border-0 shadow" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+          <div className="modal-header border-0 pb-0 px-4 pt-4 d-flex justify-content-between align-items-center">
+            <h5 className="modal-title font-serif fw-bold fs-4 text-title">Recharger mon compte</h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Fermer" disabled={loading}></button>
+          </div>
+          <div className="modal-body py-4 px-4">
+            <p className="text-body-custom mb-4" style={{ fontSize: '0.95rem' }}>
+              Accède à toutes les fonctionnalités premium de Folio. Choisis ton pack pour recharger ton solde.
+            </p>
+
+            {/* Sélection du pack */}
+            <div className="d-flex flex-column gap-3 mb-4">
+              {PACKS.map((pack) => {
+                const isSelected = selectedPack?.id === pack.id;
+                return (
+                  <div
+                    key={pack.id}
+                    className="p-3 rounded-3 d-flex justify-content-between align-items-center"
+                    style={{
+                      border: isSelected ? '2px solid var(--folio-primary)' : '1.5px solid rgba(38,33,92,0.12)',
+                      backgroundColor: isSelected ? '#F8F7FF' : 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onClick={() => { setSelectedPack(pack); setError(null); }}
+                  >
+                    <div>
+                      <span
+                        className="badge mb-1"
+                        style={{
+                          backgroundColor: isSelected ? 'var(--folio-primary)' : '#6c757d',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        {pack.label}
+                      </span>
+                      <h6 className="mb-0 fw-bold text-title">{pack.title}</h6>
+                      <small className="text-muted d-block">{pack.desc}</small>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fw-bold fs-5" style={{ color: isSelected ? 'var(--folio-primary)' : 'var(--folio-title)' }}>
+                        {pack.amount.toLocaleString('fr-FR')} F
+                      </span>
+                      {isSelected && <i className="bi bi-check-circle-fill" style={{ color: 'var(--folio-primary)' }}></i>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Numéro de téléphone */}
+            {selectedPack && (
+              <div className="mb-4">
+                <label className="form-label text-body-custom small fw-medium">
+                  <i className="bi bi-phone me-1"></i>Numéro Mobile Money
+                </label>
+                <input
+                  type="tel"
+                  className="form-control"
+                  placeholder="+225 01 02 03 04 05"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); setError(null); }}
+                  disabled={loading}
+                />
+              </div>
+            )}
+
+            {/* Message d'erreur */}
+            {error && (
+              <div className="alert alert-danger py-2 px-3 mb-3" style={{ fontSize: '0.85rem', borderRadius: '10px' }}>
+                <i className="bi bi-exclamation-triangle me-2"></i>{error}
+              </div>
+            )}
+
+            <button
+              className="btn btn-primary-custom w-100 py-2 font-sans"
+              onClick={handlePayment}
+              disabled={!selectedPack || !phone.trim() || loading}
+              style={{ fontSize: '1rem' }}
+            >
+              <span className="d-inline-flex align-items-center justify-content-center">
+                {loading ? (
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                ) : (
+                  <i className="bi bi-wallet2 me-2"></i>
+                )}
+                <span>
+                  {loading
+                    ? 'Redirection en cours...'
+                    : selectedPack
+                      ? `Payer ${selectedPack.amount.toLocaleString('fr-FR')} F CFA`
+                      : 'Recharger mon compte'}
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -808,7 +1005,7 @@ function PortfolioOptimizationModal({ userId, initialData, onClose, onComplete }
   };
 
   return (
-    <div className="optim-modal-overlay" onClick={onClose}>
+    <div className="optim-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="optim-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="p-4">
           <div className="d-flex justify-content-between align-items-center mb-4">
@@ -821,6 +1018,268 @@ function PortfolioOptimizationModal({ userId, initialData, onClose, onComplete }
             <div className="optim-progress-fill" style={{ width: `${(step / totalSteps) * 100}%` }} />
           </div>
           {renderStep()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   MODAL D'ANALYSE — Choix du secteur & de l'audience cible
+─────────────────────────────────────────────────────────────────── */
+const SECTEURS = [
+  { id: 'dev-web',      label: 'Dev Web',       icon: 'bi-code-slash',       color: '#6366f1' },
+  { id: 'dev-mobile',   label: 'Dev Mobile',    icon: 'bi-phone',            color: '#8b5cf6' },
+  { id: 'dev-desktop',  label: 'Dev Desktop',   icon: 'bi-pc-display',       color: '#7c3aed' },
+  { id: 'dev-ios',      label: 'Dev iOS',       icon: 'bi-apple',            color: '#5b21b6' },
+  { id: 'design-web',   label: 'Designer Web',  icon: 'bi-palette',          color: '#ec4899' },
+  { id: 'design-mobile',label: 'Designer Mobile',icon: 'bi-phone-flip',      color: '#f43f5e' },
+  { id: 'pentest',      label: 'Pentesteur',    icon: 'bi-shield-lock',      color: '#0ea5e9' },
+  { id: 'hacker',       label: 'Hacker',        icon: 'bi-terminal',         color: '#14b8a6' },
+  { id: 'formateur',    label: 'Formateur',     icon: 'bi-mortarboard',      color: '#f59e0b' },
+  { id: 'trader',       label: 'Trader',        icon: 'bi-graph-up-arrow',   color: '#10b981' },
+  { id: 'youtubeur',    label: 'Youtubeur',     icon: 'bi-youtube',          color: '#ef4444' },
+  { id: 'autres',       label: 'Autres métiers',icon: 'bi-grid',             color: '#64748b' },
+];
+
+const TIERS = [
+  { id: 't1', label: '10 – 300',         sublabel: 'contacts prêts à visiter votre profil',  count: '300',   color: '#6366f1' },
+  { id: 't2', label: '301 – 1 300',      sublabel: 'contacts prêts à visiter votre profil',  count: '1 300', color: '#8b5cf6' },
+  { id: 't3', label: '1 301 – 15 000',   sublabel: 'contacts prêts à visiter votre profil',  count: '15k',   color: '#7c3aed' },
+  { id: 't4', label: '15 001 – 31 000',  sublabel: 'contacts prêts à visiter votre profil',  count: '31k',   color: '#5b21b6' },
+  { id: 't5', label: '5 000 – 10 000',   sublabel: 'contacts prêts à visiter votre profil',  count: '10k',   color: '#4c1d95' },
+];
+
+function AnalysisModal({ portfolioUrl, onClose, onComplete }) {
+  const [step, setStep] = useState(1); // 1 = secteur, 2 = audience
+  const [selectedSecteur, setSelectedSecteur] = useState(null);
+  const [selectedTier, setSelectedTier] = useState(null);
+
+  const handleSecteurNext = () => {
+    if (!selectedSecteur) return;
+    setStep(2);
+  };
+
+  const handleTierNext = () => {
+    if (!selectedTier) return;
+    onComplete();
+  };
+
+  return (
+    <div
+      className="optim-modal-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ zIndex: 2000 }}
+    >
+      <div
+        className="optim-modal-container"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '640px', width: '96vw' }}
+      >
+        <div className="p-4 p-md-5">
+          {/* Header */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <span
+                className="badge rounded-pill px-3 py-1 mb-2 d-inline-block"
+                style={{ backgroundColor: '#EEEDFE', color: 'var(--folio-primary)', fontSize: '0.75rem' }}
+              >
+                <i className="bi bi-rocket-takeoff me-1"></i>
+                {step === 1 ? 'Étape 1 sur 2' : 'Étape 2 sur 2'}
+              </span>
+            </div>
+            <button
+              className="btn btn-link p-0 text-muted"
+              onClick={onClose}
+              style={{ textDecoration: 'none', fontSize: '1.1rem' }}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          {/* Progress bar */}
+          <div className="optim-progress-bar mb-4">
+            <div className="optim-progress-fill" style={{ width: step === 1 ? '50%' : '100%' }} />
+          </div>
+
+          {/* ── STEP 1 : SECTEUR ── */}
+          {step === 1 && (
+            <div className="optim-step-enter">
+              <h3 className="font-serif fw-bold text-title mb-1">Ton activité digitale</h3>
+              <p className="text-body-custom mb-4" style={{ fontSize: '0.9rem' }}>
+                Sélectionne ton domaine pour cibler les bonnes personnes.
+              </p>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                  gap: '10px',
+                  maxHeight: '320px',
+                  overflowY: 'auto',
+                  paddingRight: '4px',
+                }}
+              >
+                {SECTEURS.map((s) => {
+                  const isSelected = selectedSecteur?.id === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedSecteur(s)}
+                      style={{
+                        border: isSelected ? `2.5px solid ${s.color}` : '1.5px solid rgba(38,33,92,0.12)',
+                        borderRadius: '14px',
+                        padding: '14px 10px',
+                        backgroundColor: isSelected ? `${s.color}12` : 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.18s ease',
+                        transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                        boxShadow: isSelected ? `0 4px 16px ${s.color}33` : 'none',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '42px', height: '42px',
+                          borderRadius: '12px',
+                          backgroundColor: `${s.color}20`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '1.2rem',
+                          color: s.color,
+                        }}
+                      >
+                        <i className={`bi ${s.icon}`}></i>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isSelected ? s.color : 'var(--folio-title)', textAlign: 'center', lineHeight: '1.2' }}>
+                        {s.label}
+                      </span>
+                      {isSelected && (
+                        <i className="bi bi-check-circle-fill" style={{ color: s.color, fontSize: '0.85rem' }}></i>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                className="btn btn-primary-custom w-100 mt-4 py-2"
+                onClick={handleSecteurNext}
+                disabled={!selectedSecteur}
+              >
+                Suivant <i className="bi bi-arrow-right ms-2"></i>
+              </button>
+            </div>
+          )}
+
+          {/* ── STEP 2 : AUDIENCE ── */}
+          {step === 2 && (
+            <div className="optim-step-enter">
+              <button
+                className="btn btn-link p-0 mb-3 text-muted"
+                style={{ fontSize: '0.85rem', textDecoration: 'none' }}
+                onClick={() => setStep(1)}
+              >
+                <i className="bi bi-arrow-left me-1"></i> Retour
+              </button>
+
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <div
+                  style={{
+                    width: '36px', height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: `${selectedSecteur?.color}20`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: selectedSecteur?.color,
+                  }}
+                >
+                  <i className={`bi ${selectedSecteur?.icon}`}></i>
+                </div>
+                <span className="fw-semibold text-title" style={{ fontSize: '0.9rem' }}>
+                  {selectedSecteur?.label}
+                </span>
+              </div>
+
+              <h3 className="font-serif fw-bold text-title mb-1 mt-2">Combien de personnes veux-tu toucher ?</h3>
+              <p className="text-body-custom mb-4" style={{ fontSize: '0.88rem' }}>
+                Nous avons ces contacts prêts à visiter votre profil. Choisissez votre volume.
+              </p>
+
+              <div className="d-flex flex-column gap-3">
+                {TIERS.map((tier) => {
+                  const isSelected = selectedTier?.id === tier.id;
+                  return (
+                    <button
+                      key={tier.id}
+                      onClick={() => setSelectedTier(tier)}
+                      style={{
+                        border: isSelected ? `2px solid ${tier.color}` : '1.5px solid rgba(38,33,92,0.12)',
+                        borderRadius: '14px',
+                        padding: '14px 18px',
+                        backgroundColor: isSelected ? `${tier.color}0d` : 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        transition: 'all 0.18s ease',
+                        boxShadow: isSelected ? `0 4px 18px ${tier.color}22` : 'none',
+                        textAlign: 'left',
+                        width: '100%',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '52px', height: '52px', flexShrink: 0,
+                          borderRadius: '14px',
+                          backgroundColor: `${tier.color}18`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          color: tier.color,
+                          lineHeight: '1.1',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {tier.count}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: isSelected ? tier.color : 'var(--folio-title)' }}>
+                          {tier.label} personnes
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                          {tier.sublabel}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          width: '22px', height: '22px',
+                          borderRadius: '50%',
+                          border: isSelected ? `none` : '2px solid rgba(38,33,92,0.18)',
+                          backgroundColor: isSelected ? tier.color : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isSelected && <i className="bi bi-check text-white" style={{ fontSize: '0.75rem' }}></i>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                className="btn btn-primary-custom w-100 mt-4 py-2"
+                onClick={handleTierNext}
+                disabled={!selectedTier}
+                style={{ fontSize: '1rem' }}
+              >
+                <i className="bi bi-rocket-takeoff me-2"></i>
+                Lancer le boost !
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
