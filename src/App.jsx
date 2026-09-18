@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import AuthPage from './components/AuthPage';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
+import Freelancers from './components/Freelancers';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { supabase } from './supabaseClient';
 
@@ -23,6 +24,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showFreelancers, setShowFreelancers] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
 
@@ -165,6 +167,10 @@ function App() {
           setShowOnboarding(false);
           setShowAuth(false);
         }}
+        onGoFreelancer={() => {
+          setShowDashboard(false);
+          setShowFreelancers(true);
+        }}
       />
     );
   }
@@ -200,10 +206,43 @@ function App() {
     return <AuthPage initialMode={authMode} onBack={() => setShowAuth(false)} />;
   }
 
+  if (showFreelancers) {
+    return (
+      <div className="d-flex flex-column min-vh-100 fade-in">
+        <Navbar
+          isFreelancerPage={true}
+          user={user}
+          onHome={() => setShowFreelancers(false)}
+          onFreelancers={() => setShowFreelancers(true)}
+          onStart={() => { setAuthMode('signup'); setShowAuth(true); setShowFreelancers(false); }}
+          onLogin={() => { setAuthMode('login'); setShowAuth(true); setShowFreelancers(false); }}
+          onDashboard={() => { setShowFreelancers(false); setShowDashboard(true); }}
+          onLogout={() => { 
+            setUser(null); 
+            setShowDashboard(false); 
+            setDashboardData(null); 
+            setShowOnboarding(false); 
+            setShowAuth(false); 
+            setShowFreelancers(false); 
+            supabase.auth.signOut(); 
+          }}
+        />
+        <Freelancers 
+          user={user} 
+          onStart={() => { setAuthMode('signup'); setShowAuth(true); setShowFreelancers(false); }} 
+        />
+      </div>
+    );
+  }
+
   // Landing page
   return (
     <div className="d-flex flex-column min-vh-100 fade-in">
-      <Navbar onStart={() => { setAuthMode(null); setShowAuth(true); }} onLogin={() => { setAuthMode('login'); setShowAuth(true); }} />
+      <Navbar
+        onFreelancers={() => setShowFreelancers(true)}
+        onStart={() => { setAuthMode(null); setShowAuth(true); }}
+        onLogin={() => { setAuthMode('login'); setShowAuth(true); }}
+      />
       <main className="flex-grow-1">
         <Hero onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
         <HowItWorks />

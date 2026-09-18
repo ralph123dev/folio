@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
 import './auth.css';
 
-export default function Dashboard({ userData, onLogout }) {
+export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showOptimModal, setShowOptimModal] = useState(false);
@@ -187,8 +187,8 @@ export default function Dashboard({ userData, onLogout }) {
                 </li>
                 <li><hr className="dropdown-divider" /></li>
                 <li>
-                  <button className="dropdown-item py-2" onClick={() => alert('Optimisation du SEO de ton portfolio lancée...')}>
-                    <i className="bi bi-search me-2 text-muted"></i>Optimiser le SEO de mon portfolio
+                  <button className="dropdown-item py-2" onClick={onGoFreelancer}>
+                    <i className="bi bi-briefcase me-2 text-muted"></i>Devenir Freelancer
                   </button>
                 </li>
                 <li>
@@ -674,6 +674,8 @@ function RechargeModal({ userData, profileData, onClose }) {
 function PortfolioOptimizationModal({ userId, initialData, onClose, onComplete }) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [dnsStatus, setDnsStatus] = useState('idle');
+  const [dnsMessage, setDnsMessage] = useState('');
   const [formData, setFormData] = useState({
     portfolio_url: initialData?.portfolio_url || '',
     github_url: initialData?.github_url || '',
@@ -691,18 +693,67 @@ function PortfolioOptimizationModal({ userId, initialData, onClose, onComplete }
 
   const updateField = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === 'portfolio_url') {
+      setDnsStatus('idle');
+      setDnsMessage('');
+    }
   };
 
   const startsWithHttps = (value) => value.trim().length === 0 || /^https:\/\//i.test(value.trim());
 
   const sanitizeWhatsApp = (value) => value.replace(/[^\d\s+]/g, '');
 
-  const nextStep = () => {
+  const verifyPortfolioDns = async () => {
+    let hostname;
+
+    try {
+      const url = new URL(formData.portfolio_url.trim());
+      hostname = url.hostname;
+      if (!hostname || hostname === 'localhost' || /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+        throw new Error('Le lien doit utiliser un nom de domaine public.');
+      }
+    } catch {
+      setDnsStatus('invalid');
+      setDnsMessage('Entre une URL valide avec un nom de domaine public.');
+      return false;
+    }
+
+    setDnsStatus('checking');
+    setDnsMessage('Vérification du domaine en cours...');
+
+    try {
+      const answers = await Promise.all(['A', 'AAAA', 'CNAME'].map(async (recordType) => {
+        const response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=${recordType}`, {
+          headers: { Accept: 'application/dns-json' },
+        });
+        if (!response.ok) throw new Error('Le service DNS est indisponible.');
+        const result = await response.json();
+        return result.Answer || [];
+      }));
+
+      if (!answers.some((records) => records.length > 0)) {
+        setDnsStatus('invalid');
+        setDnsMessage('Ce domaine ne possède aucun enregistrement DNS public. Vérifie l’adresse saisie.');
+        return false;
+      }
+
+      setDnsStatus('valid');
+      setDnsMessage('Domaine trouvé. Le lien peut être utilisé.');
+      return true;
+    } catch (error) {
+      setDnsStatus('invalid');
+      setDnsMessage(error.message || 'Impossible de vérifier le domaine pour le moment.');
+      return false;
+    }
+  };
+
+  const nextStep = async () => {
     if (step === 1) {
       if (!formData.portfolio_url.trim() || !startsWithHttps(formData.portfolio_url)) {
         alert('Veuillez entrer un lien de portfolio valide commençant par https://');
         return;
       }
+      if (dnsStatus !== 'valid' && !(await verifyPortfolioDns())) return;
     }
 
     if (step === 2) {
@@ -792,14 +843,27 @@ function PortfolioOptimizationModal({ userId, initialData, onClose, onComplete }
             <label className="optim-label">URL du portfolio</label>
             <input
               type="url"
-              className="optim-form-control mb-4"
+              className="optim-form-control"
               placeholder="https://votreportfolio.com"
               value={formData.portfolio_url}
               onChange={(e) => updateField('portfolio_url', e.target.value)}
               required
             />
-            <button className="optim-btn-primary" onClick={nextStep} disabled={!startsWithHttps(formData.portfolio_url)}>
-              Suivant <i className="bi bi-arrow-right ms-2"></i>
+            <div className="d-flex align-items-start gap-2 mt-2 mb-4" role="status" aria-live="polite">
+              {dnsStatus === 'checking' ? (
+                <span className="spinner-border spinner-border-sm text-primary mt-1" role="status" aria-label="Vérification DNS en cours"></span>
+              ) : (
+                <i className={`bi ${dnsStatus === 'valid' ? 'bi-check-circle-fill text-success' : dnsStatus === 'invalid' ? 'bi-x-circle-fill text-danger' : 'bi-shield-check'}`}></i>
+              )}
+              <div>
+                <strong className="d-block" style={{ fontSize: '0.86rem' }}>Vérification DNS</strong>
+                <span className="text-body-custom" style={{ fontSize: '0.8rem' }}>
+                  {dnsMessage || 'Nous vérifions que le domaine existe avant de continuer.'}
+                </span>
+              </div>
+            </div>
+            <button className="optim-btn-primary" onClick={nextStep} disabled={!startsWithHttps(formData.portfolio_url) || dnsStatus === 'checking'}>
+              {dnsStatus === 'checking' ? 'Vérification...' : 'Suivant'} {dnsStatus !== 'checking' && <i className="bi bi-arrow-right ms-2"></i>}
             </button>
           </div>
         );

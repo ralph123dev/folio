@@ -203,6 +203,7 @@ html {
 .feature-card-visual svg { width: 100%; height: 100%; }
 .visual-track { background: linear-gradient(135deg, #26215C, #534AB7); }
 .visual-report { background: linear-gradient(135deg, #F4F1FE, #E5E1FA); }
+.visual-contact { background: linear-gradient(135deg, #ECF9F1, #D8F1E2); }
 .visual-social { background: linear-gradient(135deg, #FFF4EC, #FDE9DB); }
 .visual-score { background: linear-gradient(135deg, #E9F2FE, #DCE8FD); }
 .visual-alert { background: linear-gradient(135deg, #EAF8EF, #DAF2E4); }
@@ -214,6 +215,9 @@ html {
 .mini-terminal div { margin-bottom: 4px; }
 .mini-terminal span { color: #8B8792; }
 .mini-terminal .negative { color: #E24B4A; }
+.mini-contact { width: 85%; color: #237A4B; font-size: 11px; font-weight: 600; }
+.mini-contact div { margin-bottom: 7px; }
+.mini-contact i { margin-right: 6px; }
 .mini-generate-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 0; border-radius: 20px; color: white; background: #EE7B76; font-size: 12px; font-weight: 600; }
 .feature-carousel-nav { display: flex; justify-content: center; gap: .75rem; margin-top: .5rem; }
 .feature-nav-btn { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 1px solid #D6D3EF; border-radius: 50%; color: var(--folio-title); background: #FFFFFF; font-size: 16px; transition: background .15s ease, color .15s ease; }

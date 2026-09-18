@@ -34,7 +34,7 @@ serve(async (req) => {
     const response = await fetch(`${apiUrl.replace(/\/$/, "")}/merchant/payments`, {
       method: "POST",
       headers: {
-        "X-API-Key": apiSecret,
+        "X-API-Key": apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

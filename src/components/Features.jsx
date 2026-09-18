@@ -3,7 +3,7 @@ import folioVideo from '../assets/folio.mp4';
 
 const featureCards = [
   { visual: 'visual-track', icon: 'bi-activity', title: 'Suivi du trafic', description: "Colle un script sur ton portfolio et vois exactement quelles pages et quels projets retiennent l'attention." },
-  { visual: 'visual-report', icon: 'bi-bar-chart-line', title: 'Rapport hebdomadaire', description: "Chaque dimanche, reçois un résumé clair de l'activité de ton portfolio directement par email." },
+  { visual: 'visual-contact', icon: 'bi-whatsapp', title: 'Contact pour les prestations de services', description: 'Accède à des contacts WhatsApp intéressés pour présenter tes services directement et passer des appels commerciaux.' },
   { visual: 'visual-social', icon: 'bi-stars', title: 'Idées de contenu', description: 'Reçois chaque jour un titre, une description et des hashtags pour ta prochaine vidéo.' },
   { visual: 'visual-score', icon: 'bi-speedometer2', title: 'Score de visibilité', description: 'Une note simple qui résume la performance globale de ton portfolio, semaine après semaine.' },
   { visual: 'visual-alert', icon: 'bi-graph-up-arrow', title: 'Alertes de pic de trafic', description: "Sois prévenu dès qu'un afflux inhabituel de visiteurs arrive sur ton portfolio." },
@@ -59,7 +59,7 @@ const FeatureCarousel = () => {
           <article className="folio-feature-card" key={card.title}>
             <div className={`feature-card-visual ${card.visual}`}>
               {index === 0 && <svg viewBox="0 0 260 170" aria-hidden="true"><path d="M 20 130 Q 90 60, 140 90 T 230 60" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeDasharray="1 8" strokeLinecap="round" /><circle cx="20" cy="130" r="5" fill="white" /><circle cx="140" cy="90" r="4" fill="#C9C4F5" /><circle cx="230" cy="60" r="6" fill="#EE7B76" /></svg>}
-              {index === 1 && <div className="mini-terminal"><div>+ 214 visiteurs <span>cette semaine</span></div><div>+ 38% engagement</div><div className="negative">- 12% session mobile</div></div>}
+              {index === 1 && <div className="mini-contact"><div><i className="bi bi-whatsapp"></i> Contact disponible</div><div><i className="bi bi-telephone"></i> Appel commercial</div><div><i className="bi bi-check-circle"></i> Service à proposer</div></div>}
               {index === 2 && <span className="mini-generate-btn"><i className="bi bi-stars"></i> Générer une idée</span>}
               {index === 3 && <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="#D6D3EF" strokeWidth="10" /><circle cx="50" cy="50" r="42" fill="none" stroke="#534AB7" strokeWidth="10" strokeDasharray="264" strokeDashoffset="70" strokeLinecap="round" transform="rotate(-90 50 50)" /><text x="50" y="56" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="22" fontWeight="600" fill="#26215C">74</text></svg>}
               {index === 4 && <svg width="150" height="90" viewBox="0 0 150 90" aria-hidden="true"><polyline points="10,70 40,55 70,60 100,30 140,20" fill="none" stroke="#3E9C5C" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /><circle cx="140" cy="20" r="5" fill="#3E9C5C" /></svg>}
@@ -227,9 +227,9 @@ const Features = () => {
                   <div className="pricing-icon"><i className="bi bi-search-heart-fill"></i></div>
                   <span className="badge pricing-badge">Visibilité</span>
                 </div>
-                <h3 className="font-serif h4 mb-3">Booster ton SEO</h3>
+                <h3 className="font-serif h4 mb-3">Optimiser vos profils de Freelancer</h3>
                 <p className="text-body-custom flex-grow-1 mb-4">
-                  Analyse ton portfolio déjà en ligne, reçois un rapport simple et précis, et découvre exactement les pages visitées, les clics effectués et les contenus qui intéressent ton audience.
+                  Créez un profil freelance bien optimisé pour le SEO et mettez mieux en valeur vos activités auprès des clients.
                 </p>
                 <div className="pricing-price mb-4">5 000 <small>F / mois</small></div>
                 <button type="button" className="btn btn-primary-custom w-100">Choisir cette offre</button>
