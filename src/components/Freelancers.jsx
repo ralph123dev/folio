@@ -5,6 +5,7 @@ import './auth.css';
 export default function Freelancers({ user, onStart }) {
   const [freelancers, setFreelancers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [ratings, setRatings] = useState({});
   const [ratingCounts, setRatingCounts] = useState({});
@@ -42,11 +43,15 @@ export default function Freelancers({ user, onStart }) {
 
   const fetchFreelancers = async () => {
     setLoading(true);
+    setFetchError('');
     const { data, error } = await supabase
       .from('freelancers')
-      .select('*, profils(profile_photo_url)')
+      .select('*')
       .order('created_at', { ascending: false });
-    if (data) {
+    if (error) {
+      console.error('Erreur lors du chargement des freelancers:', error);
+      setFetchError('Les profils freelancers ne peuvent pas être chargés pour le moment.');
+    } else if (data) {
       setFreelancers(data);
     }
     setLoading(false);
@@ -159,6 +164,11 @@ export default function Freelancers({ user, onStart }) {
                 <span className="visually-hidden">Chargement...</span>
               </div>
             </div>
+          ) : fetchError ? (
+            <div className="text-center text-muted">
+              <p>{fetchError}</p>
+              <button className="btn btn-outline-custom mt-3" onClick={fetchFreelancers}>Réessayer</button>
+            </div>
           ) : freelancers.length === 0 ? (
             <div className="text-center text-muted">
               <p>Aucun profil freelancer pour le moment.</p>
@@ -167,25 +177,15 @@ export default function Freelancers({ user, onStart }) {
           ) : (
             <div className="row g-4">
               {freelancers.map((freelancer) => {
-                const photoUrl = Array.isArray(freelancer.profils) ? freelancer.profils[0]?.profile_photo_url : freelancer.profils?.profile_photo_url;
                 return (
                 <div className="col-md-4" key={freelancer.id}>
                   <article className="h-100 p-4 border rounded-3 d-flex flex-column align-items-center text-center">
-                    {photoUrl ? (
-                      <img 
-                        src={photoUrl} 
-                        alt="Avatar" 
-                        className="rounded-circle mb-3 shadow-sm" 
-                        style={{ width: '80px', height: '80px', objectFit: 'cover', border: '3px solid #EEEDFE' }}
-                      />
-                    ) : (
-                      <div 
-                        className="rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-sm" 
-                        style={{ width: '80px', height: '80px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}
-                      >
-                        <i className="bi bi-person fs-1"></i>
-                      </div>
-                    )}
+                    <div 
+                      className="rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-sm" 
+                      style={{ width: '80px', height: '80px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}
+                    >
+                      <i className="bi bi-person fs-1"></i>
+                    </div>
                     <h3 className="font-serif h5 mb-1">{freelancer.nom_freelancer}</h3>
                     <p className="text-muted small mb-3 fw-medium">{freelancer.activite}</p>
                     <p className="text-body-custom mb-4" style={{ fontSize: '0.9rem', flexGrow: 1 }}>

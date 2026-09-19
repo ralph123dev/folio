@@ -274,6 +274,38 @@
   animation: optim-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.my-profiles-modal {
+  max-width: 760px;
+  max-height: min(88vh, 820px);
+  overflow-y: auto;
+}
+
+.my-profile-item {
+  border: 1px solid rgba(38, 33, 92, 0.1);
+  border-radius: 12px;
+  background: #FCFCFF;
+}
+
+.my-profile-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #EEEDFE;
+  color: #534AB7;
+}
+
+.my-profile-item .btn-light {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @keyframes optim-slide-in {
   from { opacity: 0; transform: translateY(30px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -419,4 +451,4 @@
   .optim-success-check {
     animation: none;
   }
-}
+}

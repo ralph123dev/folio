@@ -17,7 +17,7 @@ const Footer = () => {
             <div className="d-flex gap-3">
               <a href="#" className="text-body-custom text-decoration-none fs-5" aria-label="Facebook"><i className="bi bi-facebook"></i></a>
               <a href="#" className="text-body-custom text-decoration-none fs-5" aria-label="Instagram"><i className="bi bi-instagram"></i></a>
-              <a href="#" className="text-body-custom text-decoration-none fs-5" aria-label="WhatsApp"><i className="bi bi-whatsapp"></i></a>
+              <a href="https://wa.me/237689476780" className="text-body-custom text-decoration-none fs-5" aria-label="WhatsApp"><i className="bi bi-whatsapp"></i></a>
             </div>
           </div>
           

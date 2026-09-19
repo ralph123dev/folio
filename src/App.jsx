@@ -239,9 +239,25 @@ function App() {
   return (
     <div className="d-flex flex-column min-vh-100 fade-in">
       <Navbar
+        user={user}
         onFreelancers={() => setShowFreelancers(true)}
         onStart={() => { setAuthMode(null); setShowAuth(true); }}
         onLogin={() => { setAuthMode('login'); setShowAuth(true); }}
+        onDashboard={() => {
+          if (dashboardData) {
+            setShowDashboard(true);
+          } else {
+            setShowOnboarding(true);
+          }
+        }}
+        onLogout={() => {
+          setUser(null);
+          setShowDashboard(false);
+          setDashboardData(null);
+          setShowOnboarding(false);
+          setShowAuth(false);
+          supabase.auth.signOut();
+        }}
       />
       <main className="flex-grow-1">
         <Hero onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />

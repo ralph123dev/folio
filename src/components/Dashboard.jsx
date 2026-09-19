@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
 import './auth.css';
+import MyProfilesModal from './MyProfilesModal';
 
 export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showOptimModal, setShowOptimModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [showMyProfilesModal, setShowMyProfilesModal] = useState(false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
@@ -187,6 +189,11 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </button>
                 </li>
                 <li><hr className="dropdown-divider" /></li>
+                <li>
+                  <button className="dropdown-item py-2" onClick={() => setShowMyProfilesModal(true)}>
+                    <i className="bi bi-person-vcard me-2 text-muted"></i>Mes Profils
+                  </button>
+                </li>
                 <li>
                   <button className="dropdown-item py-2" onClick={onGoFreelancer}>
                     <i className="bi bi-briefcase me-2 text-muted"></i>Devenir Freelancer
@@ -471,6 +478,14 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
             setShowAnalysisModal(false);
             triggerFireworks();
           }}
+        />
+      )}
+
+      {showMyProfilesModal && (
+        <MyProfilesModal
+          userId={userData.id}
+          userName={userData.nom_complet}
+          onClose={() => setShowMyProfilesModal(false)}
         />
       )}
     </div>
