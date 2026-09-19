@@ -150,6 +150,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                 id="profileDropdown" 
                 data-bs-toggle="dropdown" 
                 aria-expanded="false"
+                onClick={fetchProfile}
                 style={{ fontSize: '1.6rem', color: 'var(--folio-primary)' }}
               >
                 <i className="bi bi-person-circle"></i>
@@ -442,6 +443,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
         <RechargeModal
           userData={userData}
           profileData={profileData}
+          onPaymentConfirmed={fetchProfile}
           onClose={() => setShowRechargeModal(false)}
         />
       )}
@@ -476,22 +478,165 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
 }
 
 /* ───────────────────────────────────────────────────────────────────
-   MODAL DE RECHARGE — Paiement GeniusPay Mobile Money
+  MODAL DE RECHARGE — Paiement SasPay Mobile Money
 ─────────────────────────────────────────────────────────────────── */
 const PACKS = [
-  { id: 'test',    label: 'Compte test', title: 'Recharge de test', desc: 'Accès de test aux fonctionnalités premium', amount: 150 },
+  { id: 'test',    label: 'Compte test', title: 'Recharge de test', desc: 'Accès de test aux fonctionnalités premium', amount: 250 },
   { id: 'starter', label: 'Starter', title: 'Optimisation SEO & Clics', desc: 'SEO portfolio et traqueur de clics', amount: 3500 },
   { id: 'pro',     label: 'Pro',     title: 'Boost Réseaux & Contacts', desc: 'Recommandations et prospection',     amount: 7500 },
 ];
 
-function RechargeModal({ userData, profileData, onClose }) {
+const FALLBACK_PAYMENT_COUNTRIES = [
+  {
+    code: 'CI',
+    name: "Côte d'Ivoire",
+    networks: [
+      { value: 'mtn_ci', label: "MTN Côte d'Ivoire" },
+      { value: 'orange_ci', label: "Orange Côte d'Ivoire" },
+      { value: 'moov_ci', label: 'Moov Money Côte d’Ivoire' },
+      { value: 'wave_ci', label: 'Wave Côte d’Ivoire' },
+    ],
+  },
+  {
+    code: 'BJ',
+    name: 'Bénin',
+    networks: [
+      { value: 'mtn_bj', label: 'MTN Bénin' },
+      { value: 'moov_bj', label: 'Moov Money Bénin' },
+    ],
+  },
+  {
+    code: 'SN',
+    name: 'Sénégal',
+    networks: [
+      { value: 'orange_sn', label: 'Orange Sénégal' },
+      { value: 'wave_sn', label: 'Wave Sénégal' },
+      { value: 'free_sn', label: 'Free Money Sénégal' },
+    ],
+  },
+  {
+    code: 'TG',
+    name: 'Togo',
+    networks: [
+      { value: 'togocel_tg', label: 'Togocel Togo' },
+      { value: 'moov_tg', label: 'Moov Money Togo' },
+    ],
+  },
+  {
+    code: 'CM',
+    name: 'Cameroun',
+    networks: [
+      { value: 'mtn_cm', label: 'MTN Cameroun' },
+      { value: 'orange_cm', label: 'Orange Cameroun' },
+    ],
+  },
+];
+
+const normalizePaymentCountries = (payload) => {
+  const entries = Array.isArray(payload)
+    ? payload
+    : payload?.countries || payload?.data || payload?.results || [];
+
+  return entries.map((entry) => {
+    const code = entry.code || entry.country_code || entry.iso_code || entry.country?.code;
+    const rawNetworks = entry.networks || entry.operators || entry.methods || entry.payment_methods || [];
+    const networkEntries = Array.isArray(rawNetworks)
+      ? rawNetworks
+      : Object.entries(rawNetworks).map(([value, label]) => ({ value, label }));
+    const networks = networkEntries.map((item) => {
+      if (typeof item === 'string') return { value: item, label: item };
+      const value = item.code || item.value || item.id || item.slug;
+      return { value, label: item.name || item.label || item.display_name || value };
+    }).filter((item) => item.value);
+
+    return {
+      code,
+      name: entry.name || entry.country_name || entry.country?.name || code,
+      networks,
+    };
+  }).filter((item) => item.code && item.networks.length > 0);
+};
+
+function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
   const [selectedPack, setSelectedPack] = useState(null);
+  const [paymentStep, setPaymentStep] = useState(1);
+  const [paymentCountries, setPaymentCountries] = useState(FALLBACK_PAYMENT_COUNTRIES);
+  const [country, setCountry] = useState('CI');
   const [phone, setPhone] = useState(profileData?.whatsapp || '');
+  const [network, setNetwork] = useState('mtn_ci');
   const [loading, setLoading] = useState(false);
+  const [networksLoading, setNetworksLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('idle');
+
+  const selectedCountry = paymentCountries.find((item) => item.code === country) || paymentCountries[0];
+
+  useEffect(() => {
+    let active = true;
+    const loadPaymentCountries = async () => {
+      const { data, error: networksError } = await supabase.functions.invoke('saspay-networks');
+      const countries = normalizePaymentCountries(data);
+      if (!active) return;
+      if (!networksError && countries.length > 0) {
+        setPaymentCountries(countries);
+        const firstCountry = countries.find((item) => item.code === country) || countries[0];
+        setCountry(firstCountry.code);
+        setNetwork(firstCountry.networks[0].value);
+      }
+      setNetworksLoading(false);
+    };
+
+    loadPaymentCountries();
+    return () => { active = false; };
+  }, []);
+
+  const handleCountryChange = (event) => {
+    const nextCountry = paymentCountries.find((item) => item.code === event.target.value) || paymentCountries[0];
+    setCountry(nextCountry.code);
+    setNetwork(nextCountry.networks[0].value);
+    setError(null);
+  };
+
+  const waitForPayment = async (paymentId) => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const { data, error: verifyError } = await supabase.functions.invoke('saspay-verify-payment', {
+        body: { paymentId, userId: userData.id },
+      });
+
+      if (verifyError) continue;
+      const status = String(data?.status || data?.payment?.status || 'PENDING').toUpperCase();
+      if (['SUCCESS', 'SUCCEEDED', 'SUCCESSFUL', 'COMPLETED', 'PAID'].includes(status)) {
+        await onPaymentConfirmed();
+        setPaymentStatus('success');
+        setLoading(false);
+        return true;
+      }
+      if (['FAILED', 'FAILURE', 'CANCELLED', 'CANCELED'].includes(status)) {
+        setPaymentStatus('failed');
+        setError('Le paiement a été refusé ou annulé. Aucun montant n’a été ajouté à ton solde.');
+        setLoading(false);
+        return false;
+      }
+    }
+
+    setLoading(false);
+    await onPaymentConfirmed();
+    setPaymentStatus('pending');
+    setError('Le paiement a bien été envoyé à SasPay, mais sa confirmation prend plus de temps que prévu. Ne relance pas le paiement : ton solde sera crédité dès la confirmation.');
+    return false;
+  };
 
   const handlePayment = async () => {
     if (!selectedPack) return;
+    if (selectedPack.amount < 200) {
+      setError('Le montant minimum de recharge est de 200 F CFA.');
+      return;
+    }
+    if (!country || !network) {
+      setError('Veuillez choisir votre pays et votre moyen de paiement.');
+      return;
+    }
     if (!phone.trim()) {
       setError('Veuillez entrer votre numéro de téléphone mobile money.');
       return;
@@ -503,13 +648,20 @@ function RechargeModal({ userData, profileData, onClose }) {
     try {
       const orderId = `FOLIO-${userData.id.substring(0, 8)}-${Date.now()}`;
 
-      const { data, error: fnError } = await supabase.functions.invoke('geniuspay-init-payment', {
+      const nameParts = (userData.nom_complet || 'Utilisateur Folio').trim().split(/\s+/);
+      const { data, error: fnError } = await supabase.functions.invoke('saspay-init-payment', {
         body: {
-          amount: selectedPack.amount,
+          amount: selectedPack.amount.toFixed(2),
+          currency: 'XOF',
+          country,
+          network,
           description: `Folio ${selectedPack.label} — ${selectedPack.title}`,
-          customerName: userData.nom_complet || 'Utilisateur Folio',
-          customerEmail: userData.email,
-          customerPhone: phone.trim(),
+          customer: {
+            email: userData.email,
+            first_name: nameParts[0] || 'Utilisateur',
+            last_name: nameParts.slice(1).join(' ') || 'Folio',
+            phone: phone.trim(),
+          },
           orderId,
           userId: userData.id,
         },
@@ -528,28 +680,27 @@ function RechargeModal({ userData, profileData, onClose }) {
           }
         }
         setError(providerError
-          ? `Erreur GeniusPay : ${providerError}`
+          ? `Erreur SasPay : ${providerError}`
           : `Erreur réseau : ${fnError.message || 'Impossible de joindre le serveur.'}`);
         return;
       }
 
-      // Erreur renvoyée par l'API GeniusPay via la Edge Function
+      // Erreur renvoyée par l'API SasPay via la Edge Function
       if (data?.error) {
-        console.error('GeniusPay API error:', data.error);
-        setError(`Erreur GeniusPay [${data.error.code || 'UNKNOWN'}] : ${data.error.message || JSON.stringify(data.error)}`);
+        console.error('SasPay API error:', data.error);
+        setError(`Erreur SasPay : ${data.error.message || JSON.stringify(data.error)}`);
         return;
       }
 
-      // Succès → redirection vers la page de checkout
-      const checkoutUrl = data?.data?.payment_url
-        || data?.payment_url
-        || data?.data?.checkout_url
-        || data?.checkout_url;
+      // Succès → redirection vers la page de checkout ou confirmation du push USSD
+      const checkoutUrl = data?.checkout_url;
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
+      } else if (data?.payment_reference) {
+        setPaymentStatus('pending');
+        await waitForPayment(data.payment_reference);
       } else {
-        console.error('Réponse inattendue:', data);
-        setError('La réponse du serveur ne contient pas de lien de paiement. Vérifiez la configuration.');
+        setError('Le paiement a été envoyé, mais SasPay n’a pas fourni de référence pour suivre sa confirmation.');
       }
     } catch (err) {
       console.error('Payment error:', err);
@@ -574,66 +725,94 @@ function RechargeModal({ userData, profileData, onClose }) {
             <button type="button" className="btn-close" onClick={onClose} aria-label="Fermer" disabled={loading}></button>
           </div>
           <div className="modal-body py-4 px-4">
+            {paymentStatus === 'success' ? (
+              <div className="text-center py-4">
+                <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '4rem' }}></i>
+                <h4 className="font-serif fw-bold text-title mt-3">Paiement réussi</h4>
+                <p className="text-body-custom mb-2">Ton compte a été rechargé avec succès.</p>
+                <p className="fw-bold text-success mb-4">+{selectedPack?.amount.toLocaleString('fr-FR')} F CFA ajoutés à ton solde</p>
+                <button type="button" className="btn btn-primary-custom w-100" onClick={onClose}>Fermer</button>
+              </div>
+            ) : (
+              <>
             <p className="text-body-custom mb-4" style={{ fontSize: '0.95rem' }}>
-              Accède à toutes les fonctionnalités premium de Folio. Choisis ton pack pour recharger ton solde.
+              {paymentStep === 1
+                ? 'Choisis ton forfait pour recharger ton solde.'
+                : 'Renseigne tes informations Mobile Money pour lancer le paiement.'}
             </p>
 
-            {/* Sélection du pack */}
-            <div className="d-flex flex-column gap-3 mb-4">
-              {PACKS.map((pack) => {
-                const isSelected = selectedPack?.id === pack.id;
-                return (
-                  <div
-                    key={pack.id}
-                    className="p-3 rounded-3 d-flex justify-content-between align-items-center"
-                    style={{
-                      border: isSelected ? '2px solid var(--folio-primary)' : '1.5px solid rgba(38,33,92,0.12)',
-                      backgroundColor: isSelected ? '#F8F7FF' : 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onClick={() => { setSelectedPack(pack); setError(null); }}
-                  >
-                    <div>
-                      <span
-                        className="badge mb-1"
-                        style={{
-                          backgroundColor: isSelected ? 'var(--folio-primary)' : '#6c757d',
-                          color: 'white',
-                          fontSize: '0.75rem',
-                        }}
-                      >
-                        {pack.label}
-                      </span>
-                      <h6 className="mb-0 fw-bold text-title">{pack.title}</h6>
-                      <small className="text-muted d-block">{pack.desc}</small>
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="fw-bold fs-5" style={{ color: isSelected ? 'var(--folio-primary)' : 'var(--folio-title)' }}>
-                        {pack.amount.toLocaleString('fr-FR')} F
-                      </span>
-                      {isSelected && <i className="bi bi-check-circle-fill" style={{ color: 'var(--folio-primary)' }}></i>}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="d-flex align-items-center gap-2 mb-4" aria-label="Étapes du paiement">
+              <span className={`badge rounded-pill ${paymentStep === 1 ? 'text-bg-primary' : 'text-bg-success'}`}>1. Forfait</span>
+              <div className="flex-grow-1 border-top"></div>
+              <span className={`badge rounded-pill ${paymentStep === 2 ? 'text-bg-primary' : 'text-bg-secondary'}`}>2. Paiement</span>
             </div>
 
-            {/* Numéro de téléphone */}
-            {selectedPack && (
+            {paymentStep === 1 && (
+              <>
+                <div className="d-flex flex-column gap-3 mb-4">
+                  {PACKS.map((pack) => {
+                    const isSelected = selectedPack?.id === pack.id;
+                    return (
+                      <button
+                        type="button"
+                        key={pack.id}
+                        className="p-3 rounded-3 d-flex justify-content-between align-items-center text-start"
+                        style={{
+                          border: isSelected ? '2px solid var(--folio-primary)' : '1.5px solid rgba(38,33,92,0.12)',
+                          backgroundColor: isSelected ? '#F8F7FF' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onClick={() => { setSelectedPack(pack); setError(null); }}
+                      >
+                        <span>
+                          <span className="badge mb-1" style={{ backgroundColor: isSelected ? 'var(--folio-primary)' : '#6c757d', color: 'white', fontSize: '0.75rem' }}>{pack.label}</span>
+                          <strong className="d-block text-title">{pack.title}</strong>
+                          <small className="text-muted d-block">{pack.desc}</small>
+                        </span>
+                        <span className="d-flex align-items-center gap-2">
+                          <strong className="fs-5" style={{ color: isSelected ? 'var(--folio-primary)' : 'var(--folio-title)' }}>{pack.amount.toLocaleString('fr-FR')} F</strong>
+                          {isSelected && <i className="bi bi-check-circle-fill" style={{ color: 'var(--folio-primary)' }}></i>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button type="button" className="btn btn-primary-custom w-100 py-2" onClick={() => setPaymentStep(2)} disabled={!selectedPack}>
+                  Suivant <i className="bi bi-arrow-right ms-2"></i>
+                </button>
+              </>
+            )}
+
+            {paymentStep === 2 && (
               <div className="mb-4">
                 <label className="form-label text-body-custom small fw-medium">
+                  <i className="bi bi-globe2 me-1"></i>Pays
+                </label>
+                <select className="form-select" value={country} onChange={handleCountryChange} disabled={loading || networksLoading}>
+                  {paymentCountries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+                </select>
+                {networksLoading && <small className="text-muted d-block mt-1">Chargement des pays et moyens disponibles...</small>}
+                <label className="form-label text-body-custom small fw-medium mt-3">
                   <i className="bi bi-phone me-1"></i>Numéro Mobile Money
                 </label>
                 <input
                   type="tel"
                   className="form-control"
-                  placeholder="+225 01 02 03 04 05"
+                  placeholder={country === 'CI' ? '+225 01 02 03 04 05' : 'Ton numéro Mobile Money'}
                   value={phone}
                   onChange={(e) => { setPhone(e.target.value); setError(null); }}
                   disabled={loading}
                 />
+                <label className="form-label text-body-custom small fw-medium mt-3">
+                  <i className="bi bi-wallet2 me-1"></i>Moyen de paiement
+                </label>
+                <select className="form-select" value={network} onChange={(e) => setNetwork(e.target.value)} disabled={loading}>
+                  {selectedCountry.networks.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
               </div>
+            )}
+              </>
             )}
 
             {/* Message d'erreur */}
@@ -643,27 +822,19 @@ function RechargeModal({ userData, profileData, onClose }) {
               </div>
             )}
 
-            <button
-              className="btn btn-primary-custom w-100 py-2 font-sans"
-              onClick={handlePayment}
-              disabled={!selectedPack || !phone.trim() || loading}
-              style={{ fontSize: '1rem' }}
-            >
-              <span className="d-inline-flex align-items-center justify-content-center">
-                {loading ? (
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                ) : (
-                  <i className="bi bi-wallet2 me-2"></i>
-                )}
-                <span>
-                  {loading
-                    ? 'Redirection en cours...'
-                    : selectedPack
-                      ? `Payer ${selectedPack.amount.toLocaleString('fr-FR')} F CFA`
-                      : 'Recharger mon compte'}
-                </span>
-              </span>
-            </button>
+            {paymentStep === 2 && (
+              <div className="d-flex gap-2">
+                <button type="button" className="btn btn-outline-custom py-2" onClick={() => { setPaymentStep(1); setError(null); }} disabled={loading}>
+                  <i className="bi bi-arrow-left me-1"></i>Retour
+                </button>
+                <button type="button" className="btn btn-primary-custom flex-grow-1 py-2 font-sans" onClick={handlePayment} disabled={!selectedPack || !phone.trim() || loading} style={{ fontSize: '1rem' }}>
+                  <span className="d-inline-flex align-items-center justify-content-center">
+                    {loading ? <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> : <i className="bi bi-wallet2 me-2"></i>}
+                    <span>{loading ? 'Redirection en cours...' : `Payer ${selectedPack.amount.toLocaleString('fr-FR')} F CFA`}</span>
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

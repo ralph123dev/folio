@@ -7,9 +7,31 @@ export default function Freelancers({ user, onStart }) {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [ratings, setRatings] = useState({});
+  const [ratingCounts, setRatingCounts] = useState({});
 
   useEffect(() => {
     fetchFreelancers();
+    fetchRatingCounts();
+
+    const channel = supabase
+      .channel('public:freelancer_ratings')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'freelancer_ratings' }, payload => {
+        setRatingCounts(prev => ({
+          ...prev,
+          [payload.new.freelancer_id]: (prev[payload.new.freelancer_id] || 0) + 1
+        }));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'freelancer_ratings' }, payload => {
+        setRatingCounts(prev => ({
+          ...prev,
+          [payload.old.freelancer_id]: Math.max(0, (prev[payload.old.freelancer_id] || 0) - 1)
+        }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -28,6 +50,17 @@ export default function Freelancers({ user, onStart }) {
       setFreelancers(data);
     }
     setLoading(false);
+  };
+
+  const fetchRatingCounts = async () => {
+    const { data, error } = await supabase
+      .from('freelancer_ratings')
+      .select('freelancer_id');
+    if (data) {
+      const counts = {};
+      data.forEach(r => { counts[r.freelancer_id] = (counts[r.freelancer_id] || 0) + 1; });
+      setRatingCounts(counts);
+    }
   };
 
   const fetchUserRatings = async () => {
@@ -67,7 +100,7 @@ export default function Freelancers({ user, onStart }) {
   };
 
   const truncateWords = (str, numWords) => {
-    if (!str) return '';
+    if (!str || typeof str !== 'string') return '';
     const words = str.split(/\s+/);
     if (words.length <= numWords) return str;
     return words.slice(0, numWords).join(' ') + '...';
@@ -133,12 +166,14 @@ export default function Freelancers({ user, onStart }) {
             </div>
           ) : (
             <div className="row g-4">
-              {freelancers.map((freelancer) => (
+              {freelancers.map((freelancer) => {
+                const photoUrl = Array.isArray(freelancer.profils) ? freelancer.profils[0]?.profile_photo_url : freelancer.profils?.profile_photo_url;
+                return (
                 <div className="col-md-4" key={freelancer.id}>
                   <article className="h-100 p-4 border rounded-3 d-flex flex-column align-items-center text-center">
-                    {freelancer.profils?.profile_photo_url ? (
+                    {photoUrl ? (
                       <img 
-                        src={freelancer.profils.profile_photo_url} 
+                        src={photoUrl} 
                         alt="Avatar" 
                         className="rounded-circle mb-3 shadow-sm" 
                         style={{ width: '80px', height: '80px', objectFit: 'cover', border: '3px solid #EEEDFE' }}
@@ -159,22 +194,34 @@ export default function Freelancers({ user, onStart }) {
                     
                     {user && (
                       <div className="rating-container mt-auto pt-3 border-top w-100">
-                        <p className="small text-muted mb-2">Notez ce freelancer</p>
+                        {user.id === freelancer.user_id ? (
+                           <p className="small text-muted mb-2">Votre note actuelle (désactivé)</p>
+                        ) : (
+                           <p className="small text-muted mb-2">Notez ce freelancer</p>
+                        )}
                         <div className="d-flex justify-content-center gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <i 
                               key={star}
                               className={`bi ${ratings[freelancer.id] >= star ? 'bi-star-fill text-warning' : 'bi-star text-muted'} fs-5`}
-                              style={{ cursor: 'pointer', transition: 'color 0.2s' }}
-                              onClick={() => handleRate(freelancer.id, star)}
+                              style={{ cursor: user.id === freelancer.user_id ? 'default' : 'pointer', transition: 'color 0.2s', opacity: user.id === freelancer.user_id ? 0.6 : 1 }}
+                              onClick={() => {
+                                if (user.id !== freelancer.user_id) {
+                                  handleRate(freelancer.id, star);
+                                }
+                              }}
                             ></i>
                           ))}
                         </div>
+                        <p className="small text-muted mt-2 mb-0" style={{ fontSize: '0.75rem' }}>
+                          <i className="bi bi-person-check me-1"></i>
+                          {ratingCounts[freelancer.id] || 0} avis
+                        </p>
                       </div>
                     )}
                   </article>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
@@ -195,9 +242,14 @@ export default function Freelancers({ user, onStart }) {
 }
 
 function CreateFreelancerModal({ user, onClose, onComplete }) {
+  const safeName = (user?.user_metadata?.name || user?.user_metadata?.full_name || '');
+  const splitName = safeName.split(' ');
+  const defaultNom = splitName[0] || '';
+  const defaultPrenom = splitName.slice(1).join(' ') || '';
+
   const [formData, setFormData] = useState({
-    nom: user?.user_metadata?.name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || '',
-    prenom: user?.user_metadata?.name?.split(' ').slice(1).join(' ') || user?.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+    nom: defaultNom,
+    prenom: defaultPrenom,
     nom_freelancer: '',
     age: '',
     date_naissance: '',
@@ -242,8 +294,8 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
       if (insertError) throw insertError;
       onComplete();
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Une erreur est survenue.');
+      console.error("Erreur lors de la publication:", err);
+      setError(err?.message || 'Une erreur est survenue lors de la publication.');
     } finally {
       setLoading(false);
     }

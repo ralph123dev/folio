@@ -1,17 +1,29 @@
 
-[functions.geniuspay-init-payment]
+[functions.saspay-init-payment]
 enabled = true
 verify_jwt = false
-import_map = "./functions/geniuspay-init-payment/deno.json"
+import_map = "./functions/saspay-init-payment/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/geniuspay-init-payment/index.ts"
+entrypoint = "./functions/saspay-init-payment/index.ts"
+
+[functions.saspay-networks]
+enabled = true
+verify_jwt = false
+import_map = "./functions/saspay-networks/deno.json"
+entrypoint = "./functions/saspay-networks/index.ts"
+
+[functions.saspay-verify-payment]
+enabled = true
+verify_jwt = false
+import_map = "./functions/saspay-verify-payment/deno.json"
+entrypoint = "./functions/saspay-verify-payment/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/geniuspay-init-payment/*.html" ]
 
-[functions.geniuspay-webhook]
+[functions.saspay-webhook]
 enabled = true
 verify_jwt = false
-import_map = "./functions/geniuspay-webhook/deno.json"
-entrypoint = "./functions/geniuspay-webhook/index.ts"
+import_map = "./functions/saspay-webhook/deno.json"
+entrypoint = "./functions/saspay-webhook/index.ts"
