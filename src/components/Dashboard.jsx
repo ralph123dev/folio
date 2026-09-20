@@ -41,6 +41,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [showMyProfilesModal, setShowMyProfilesModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showSearchDetectionModal, setShowSearchDetectionModal] = useState(false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
@@ -60,6 +61,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       return null;
     }
   });
+  const [searchStats, setSearchStats] = useState([]);
 
   const isUserVerified = useMemo(() => {
     return Boolean(
@@ -314,6 +316,25 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     triggerFireworks();
   };
 
+  const fetchSearchStats = async () => {
+    const { data, error } = await supabase.rpc('get_search_detection_stats', { target_user_id: userData.id });
+    if (!error) setSearchStats(data || []);
+  };
+
+  const openSearchDetection = async () => {
+    await fetchSearchStats();
+    setShowSearchDetectionModal(true);
+  };
+
+  useEffect(() => {
+    if (!showSearchDetectionModal) return undefined;
+    const channel = supabase
+      .channel(`search-detection-${userData.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'freelancer_search_events', filter: `profile_owner_id=eq.${userData.id}` }, fetchSearchStats)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [showSearchDetectionModal, userData.id]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     onLogout();
@@ -403,8 +424,8 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item py-2" onClick={() => alert('Détection des clics activée...')}>
-                    <i className="bi bi-cursor me-2 text-muted"></i>Détecter les clics
+                  <button className="dropdown-item py-2" onClick={openSearchDetection}>
+                    <i className="bi bi-search me-2 text-muted"></i>Détecter les recherches
                   </button>
                 </li>
                 <li>
@@ -726,6 +747,9 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                 </div>
               )}
             </div>
+            {boostContacts.length > 0 && (
+              <SeoResultsPanel portfolioUrl={profileData?.portfolio_url || portfolioUrl} profileData={profileData} details={boostDetails} />
+            )}
           </div>
         </div>
       </div>
@@ -781,6 +805,118 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
           onClose={() => setShowVerificationModal(false)}
         />
       )}
+
+      {showSearchDetectionModal && (
+        <SearchDetectionModal stats={searchStats} onRefresh={fetchSearchStats} onClose={() => setShowSearchDetectionModal(false)} />
+      )}
+    </div>
+  );
+}
+
+function SeoResultsPanel({ portfolioUrl, profileData, details }) {
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const portfolioHost = portfolioUrl?.replace(/^https?:\/\//i, '').replace(/\/$/, '') || 'ton-portfolio.com';
+  const profession = profileData?.profession || details?.secteur || 'professionnel du digital';
+
+  const analyzePortfolio = async () => {
+    if (!portfolioUrl) return;
+    setLoading(true);
+    setError('');
+    const { data, error: analysisError } = await supabase.functions.invoke('analyze-portfolio', {
+      body: { portfolioUrl, name: profileData?.nom_complet, profession },
+    });
+    if (analysisError || data?.error) {
+      let providerMessage = data?.error;
+      if (!providerMessage && analysisError?.context?.json) {
+        try {
+          const responseBody = await analysisError.context.json();
+          providerMessage = responseBody?.message || responseBody?.error;
+        } catch {
+          // La réponse peut être vide lorsque la fonction n'est pas déployée.
+        }
+      }
+      const rawMessage = providerMessage || analysisError?.message || '';
+      setError(rawMessage.includes('not found') || rawMessage.includes('Failed to send')
+        ? "L'analyse SEO n'est pas encore activée sur le serveur. La fonction Edge analyze-portfolio doit être déployée dans Supabase."
+        : rawMessage || 'Analyse impossible pour le moment.');
+    } else {
+      setAnalysis(data);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    analyzePortfolio();
+  }, [portfolioUrl]);
+
+  const metrics = analysis?.metrics;
+  const seoCode = analysis?.headCode || '';
+
+  return (
+    <div className="dashboard-panel bg-white rounded-3 p-4 mt-3" style={{ border: '1px solid rgba(38, 33, 92, 0.08)' }}>
+      <div className="d-flex align-items-start justify-content-between gap-2 mb-3">
+        <div>
+          <h6 className="font-serif mb-1" style={{ color: 'var(--folio-title)' }}><i className="bi bi-bar-chart-line me-2" style={{ color: 'var(--folio-primary)' }}></i>Analyse SEO</h6>
+          <p className="small text-muted mb-0">Analyse réelle de {portfolioHost} et recommandations personnalisées.</p>
+        </div>
+        {analysis && <span className="badge text-bg-success">Score {analysis.score}/100</span>}
+      </div>
+      {loading && <div className="text-center py-4"><span className="spinner-border spinner-border-sm text-primary me-2"></span>Analyse du portfolio en cours...</div>}
+      {error && <div className="alert alert-warning py-2 px-3 small"><i className="bi bi-exclamation-triangle me-1"></i>{error}</div>}
+      {metrics && <div className="row g-2 mb-3">
+        <div className="col-6"><div className="p-2 rounded-2" style={{ backgroundColor: '#F4F1FE' }}><div className="small text-muted">Titre</div><strong className="text-title">{metrics.title ? 'Présent' : 'Absent'}</strong></div></div>
+        <div className="col-6"><div className="p-2 rounded-2" style={{ backgroundColor: '#E8F5EC' }}><div className="small text-muted">Description</div><strong className="text-title">{metrics.description ? `${metrics.description.length} caractères` : 'Absente'}</strong></div></div>
+        <div className="col-6"><div className="p-2 rounded-2" style={{ backgroundColor: '#FFF7E6' }}><div className="small text-muted">H1 / images sans alt</div><strong className="text-title">{metrics.h1Count} / {metrics.imagesWithoutAlt}</strong></div></div>
+        <div className="col-6"><div className="p-2 rounded-2" style={{ backgroundColor: '#EEF1FB' }}><div className="small text-muted">Contenu visible</div><strong className="text-title">{metrics.textLength} caractères</strong></div></div>
+      </div>}
+      {analysis?.recommendations?.length > 0 && <ul className="small text-body-custom ps-3 mb-3">{analysis.recommendations.map((recommendation) => <li key={recommendation}>{recommendation}</li>)}</ul>}
+      {analysis && !analysis.recommendations?.length && <p className="small text-success"><i className="bi bi-check-circle me-1"></i>Aucune amélioration prioritaire détectée.</p>}
+      <label className="small text-muted fw-semibold mb-1" htmlFor="seo-head-code">Code à coller dans le &lt;head&gt; de {portfolioHost}</label>
+      <textarea id="seo-head-code" className="form-control font-monospace small" rows="6" readOnly value={seoCode || 'Le code apparaîtra après l’analyse.'} onFocus={(event) => event.target.select()} />
+      <div className="d-flex justify-content-between align-items-center gap-2 mt-2">
+        <p className="small text-muted mb-0"><i className="bi bi-info-circle me-1"></i>Colle ce code dans le &lt;head&gt; de ta page HTML.</p>
+        <button type="button" className="btn btn-sm btn-outline-custom flex-shrink-0" onClick={analyzePortfolio} disabled={loading}><i className="bi bi-arrow-clockwise me-1"></i>Analyser</button>
+      </div>
+    </div>
+  );
+}
+
+function SearchDetectionModal({ stats, onRefresh, onClose }) {
+  const totalSearches = stats.reduce((sum, item) => sum + Number(item.search_count || 0), 0);
+
+  return (
+    <div className="modal fade show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 2050 }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="modal-dialog modal-dialog-centered" role="document">
+        <div className="modal-content border-0 shadow" style={{ borderRadius: '16px' }}>
+          <div className="modal-header border-0 pb-0 px-4 pt-4">
+            <h5 className="modal-title font-serif fw-bold text-title"><i className="bi bi-search me-2"></i>Détection de recherche</h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Fermer"></button>
+          </div>
+          <div className="modal-body px-4 py-4">
+            <div className="rounded-3 p-3 mb-3" style={{ backgroundColor: '#F4F1FE' }}>
+              <div className="small text-muted">Personnes estimées ayant recherché tes profils</div>
+              <div className="display-6 fw-bold text-title">{totalSearches}</div>
+              <div className="small text-muted">Mise à jour en temps réel à chaque recherche enregistrée.</div>
+            </div>
+            {stats.length ? (
+              <div className="list-group list-group-flush">
+                {stats.map((item) => (
+                  <div className="list-group-item px-0 d-flex justify-content-between align-items-center" key={`${item.profession}-${item.search_query}`}>
+                    <div><strong className="text-title">{item.profession || 'Métier non précisé'}</strong><div className="small text-muted">Recherche : “{item.search_query}”</div></div>
+                    <span className="badge rounded-pill text-bg-primary">{item.search_count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-muted small mb-0">Aucune recherche enregistrée pour le moment. Les résultats apparaîtront quand un visiteur cherchera ton nom ou ton métier.</p>}
+          </div>
+          <div className="modal-footer border-0 px-4 pb-4">
+            <button type="button" className="btn btn-outline-custom" onClick={onRefresh}><i className="bi bi-arrow-clockwise me-1"></i>Actualiser</button>
+            <button type="button" className="btn btn-primary-custom" onClick={onClose}>Fermer</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -991,6 +1127,30 @@ const FALLBACK_PAYMENT_COUNTRIES = [
       { value: 'orange_cm', label: 'Orange Cameroun' },
     ],
   },
+  {
+    code: 'BF',
+    name: 'Burkina Faso',
+    networks: [
+      { value: 'orange_bf', label: 'Orange Money Burkina Faso' },
+      { value: 'moov_bf', label: 'Moov Money Burkina Faso' },
+    ],
+  },
+  {
+    code: 'ML',
+    name: 'Mali',
+    networks: [
+      { value: 'orange_ml', label: 'Orange Money Mali' },
+      { value: 'moov_ml', label: 'Moov Money Mali' },
+    ],
+  },
+  {
+    code: 'NE',
+    name: 'Niger',
+    networks: [
+      { value: 'airtel_ne', label: 'Airtel Money Niger' },
+      { value: 'moov_ne', label: 'Moov Money Niger' },
+    ],
+  },
 ];
 
 const normalizePaymentCountries = (payload) => {
@@ -1013,9 +1173,21 @@ const normalizePaymentCountries = (payload) => {
     return {
       code,
       name: entry.name || entry.country_name || entry.country?.name || code,
+      currency: entry.currency || entry.currency_code || entry.country?.currency || null,
       networks,
     };
   }).filter((item) => item.code && item.networks.length > 0);
+};
+
+const COUNTRY_CURRENCIES = {
+  CI: 'XOF', BJ: 'XOF', SN: 'XOF', TG: 'XOF', BF: 'XOF', ML: 'XOF', NE: 'XOF',
+  CM: 'XAF', GA: 'XAF', TD: 'XAF', CD: 'CDF', NG: 'NGN', MA: 'MAD',
+};
+
+const mergePaymentCountries = (remoteCountries) => {
+  const countriesByCode = new Map(FALLBACK_PAYMENT_COUNTRIES.map((item) => [item.code, item]));
+  remoteCountries.forEach((item) => countriesByCode.set(item.code, item));
+  return Array.from(countriesByCode.values());
 };
 
 function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
@@ -1031,6 +1203,7 @@ function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
   const [paymentStatus, setPaymentStatus] = useState('idle');
 
   const selectedCountry = paymentCountries.find((item) => item.code === country) || paymentCountries[0];
+  const selectedCurrency = selectedCountry?.currency || COUNTRY_CURRENCIES[selectedCountry?.code] || 'XOF';
 
   useEffect(() => {
     let active = true;
@@ -1039,8 +1212,9 @@ function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
       const countries = normalizePaymentCountries(data);
       if (!active) return;
       if (!networksError && countries.length > 0) {
-        setPaymentCountries(countries);
-        const firstCountry = countries.find((item) => item.code === country) || countries[0];
+        const availableCountries = mergePaymentCountries(countries);
+        setPaymentCountries(availableCountries);
+        const firstCountry = availableCountries.find((item) => item.code === country) || availableCountries[0];
         setCountry(firstCountry.code);
         setNetwork(firstCountry.networks[0].value);
       }
@@ -1113,7 +1287,7 @@ function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
       const { data, error: fnError } = await supabase.functions.invoke('saspay-init-payment', {
         body: {
           amount: selectedPack.amount.toFixed(2),
-          currency: 'XOF',
+          currency: selectedCurrency,
           country,
           network,
           description: `Folio ${selectedPack.label} — ${selectedPack.title}`,

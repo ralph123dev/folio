@@ -28,6 +28,16 @@ export default function Freelancers({ user, onStart }) {
   const [selectedProfession, setSelectedProfession] = useState('Tous les métiers');
   const [verifiedUsers, setVerifiedUsers] = useState({});
 
+  const visitorId = useMemo(() => {
+    const storageKey = 'folio-search-visitor-id';
+    let id = localStorage.getItem(storageKey);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(storageKey, id);
+    }
+    return id;
+  }, []);
+
   useEffect(() => {
     fetchFreelancers();
     fetchRatingCounts();
@@ -50,6 +60,35 @@ export default function Freelancers({ user, onStart }) {
       fetchUserRatings();
     }
   }, [user]);
+
+  useEffect(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query || !freelancers.length) return undefined;
+
+    const timer = setTimeout(async () => {
+      const matches = freelancers.filter((freelancer) => {
+        const searchable = [freelancer.nom_freelancer, freelancer.nom, freelancer.prenom, freelancer.activite]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return searchable.includes(query);
+      });
+
+      if (!matches.length) return;
+      const events = matches.map((freelancer) => ({
+        visitor_id: visitorId,
+        freelancer_id: freelancer.id,
+        profile_owner_id: freelancer.user_id,
+        search_query: query,
+        profession: freelancer.activite || 'Métier non précisé',
+        search_day: new Date().toISOString().slice(0, 10),
+      }));
+      const { error } = await supabase.from('freelancer_search_events').upsert(events, { onConflict: 'visitor_id,freelancer_id,search_query,search_day', ignoreDuplicates: true });
+      if (error) console.error('Erreur enregistrement recherche:', error);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, freelancers, visitorId]);
 
   const fetchVerifiedUsers = async () => {
     try {

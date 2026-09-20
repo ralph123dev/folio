@@ -27,3 +27,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/saspay-webhook/deno.json"
 entrypoint = "./functions/saspay-webhook/index.ts"
+
+[functions.analyze-portfolio]
+enabled = true
+verify_jwt = false
+import_map = "./functions/analyze-portfolio/deno.json"
+entrypoint = "./functions/analyze-portfolio/index.ts"
