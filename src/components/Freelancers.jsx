@@ -1,6 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
+import verifieBadge from '../assets/verifie.png';
 import './auth.css';
+
+const DEFAULT_PROFESSIONS = [
+  'Tous les métiers',
+  'Développeur Web',
+  'Développeur Mobile',
+  'Designer UI/UX',
+  'Community Manager',
+  'Rédacteur Web',
+  'Monteur Vidéo',
+  'Graphiste',
+  'Spécialiste SEO',
+];
 
 export default function Freelancers({ user, onStart }) {
   const [freelancers, setFreelancers] = useState([]);
@@ -9,24 +22,20 @@ export default function Freelancers({ user, onStart }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [ratings, setRatings] = useState({});
   const [ratingCounts, setRatingCounts] = useState({});
+  const [ratingSums, setRatingSums] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProfession, setSelectedProfession] = useState('Tous les métiers');
+  const [verifiedUsers, setVerifiedUsers] = useState({});
 
   useEffect(() => {
     fetchFreelancers();
     fetchRatingCounts();
+    fetchVerifiedUsers();
 
     const channel = supabase
       .channel('public:freelancer_ratings')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'freelancer_ratings' }, payload => {
-        setRatingCounts(prev => ({
-          ...prev,
-          [payload.new.freelancer_id]: (prev[payload.new.freelancer_id] || 0) + 1
-        }));
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'freelancer_ratings' }, payload => {
-        setRatingCounts(prev => ({
-          ...prev,
-          [payload.old.freelancer_id]: Math.max(0, (prev[payload.old.freelancer_id] || 0) - 1)
-        }));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freelancer_ratings' }, () => {
+        fetchRatingCounts();
       })
       .subscribe();
 
@@ -40,6 +49,21 @@ export default function Freelancers({ user, onStart }) {
       fetchUserRatings();
     }
   }, [user]);
+
+  const fetchVerifiedUsers = async () => {
+    try {
+      const { data } = await supabase.rpc('get_public_verified_users');
+      if (data) {
+        const vMap = {};
+        data.forEach((profile) => {
+          vMap[profile.user_id] = true;
+        });
+        setVerifiedUsers(vMap);
+      }
+    } catch (err) {
+      console.error('Erreur profil vérifié:', err);
+    }
+  };
 
   const fetchFreelancers = async () => {
     setLoading(true);
@@ -60,11 +84,16 @@ export default function Freelancers({ user, onStart }) {
   const fetchRatingCounts = async () => {
     const { data, error } = await supabase
       .from('freelancer_ratings')
-      .select('freelancer_id');
+      .select('freelancer_id, rating');
     if (data) {
       const counts = {};
-      data.forEach(r => { counts[r.freelancer_id] = (counts[r.freelancer_id] || 0) + 1; });
+      const sums = {};
+      data.forEach(r => {
+        counts[r.freelancer_id] = (counts[r.freelancer_id] || 0) + 1;
+        sums[r.freelancer_id] = (sums[r.freelancer_id] || 0) + r.rating;
+      });
       setRatingCounts(counts);
+      setRatingSums(sums);
     }
   };
 
@@ -101,6 +130,8 @@ export default function Freelancers({ user, onStart }) {
     if (error) {
       console.error('Erreur lors de la notation:', error);
       fetchUserRatings(); // revert optimistic update
+    } else {
+      fetchRatingCounts();
     }
   };
 
@@ -110,6 +141,58 @@ export default function Freelancers({ user, onStart }) {
     if (words.length <= numWords) return str;
     return words.slice(0, numWords).join(' ') + '...';
   };
+
+  // Extraire les métiers disponibles dynamiquement
+  const professionOptions = useMemo(() => {
+    const set = new Set(DEFAULT_PROFESSIONS);
+    freelancers.forEach(f => {
+      if (f.activite && f.activite.trim()) set.add(f.activite.trim());
+    });
+    return Array.from(set);
+  }, [freelancers]);
+
+  // Filtrer et trier les freelancers en fonction du métier, de la recherche et des étoiles obtenues
+  const filteredAndSortedFreelancers = useMemo(() => {
+    return freelancers
+      .filter((freelancer) => {
+        // Filtre Métier
+        if (selectedProfession !== 'Tous les métiers' && freelancer.activite !== selectedProfession) {
+          return false;
+        }
+
+        // Filtre Recherche Nom / Spécialité
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const matchName = (freelancer.nom_freelancer || '').toLowerCase().includes(q);
+          const matchNom = (freelancer.nom || '').toLowerCase().includes(q);
+          const matchPrenom = (freelancer.prenom || '').toLowerCase().includes(q);
+          const matchActivite = (freelancer.activite || '').toLowerCase().includes(q);
+          if (!matchName && !matchNom && !matchPrenom && !matchActivite) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .map((freelancer) => {
+        const count = ratingCounts[freelancer.id] || 0;
+        const sum = ratingSums[freelancer.id] || 0;
+        const avg = count > 0 ? sum / count : 0;
+        return { ...freelancer, avgRating: avg, ratingCount: count };
+      })
+      .sort((a, b) => {
+        // Tri décroissant par moyenne des étoiles obtenues
+        if (b.avgRating !== a.avgRating) {
+          return b.avgRating - a.avgRating;
+        }
+        // En cas d'égalité, trier par nombre d'avis
+        if (b.ratingCount !== a.ratingCount) {
+          return b.ratingCount - a.ratingCount;
+        }
+        // Enfin trier par date de création récents en premier
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+  }, [freelancers, selectedProfession, searchQuery, ratingCounts, ratingSums]);
 
   return (
     <main className="flex-grow-1 freelancers-page">
@@ -153,9 +236,50 @@ export default function Freelancers({ user, onStart }) {
 
       <section className="py-5 bg-white">
         <div className="container py-4">
-          <div className="text-center mb-5">
+          <div className="text-center mb-4">
             <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.8rem' }}>Pour développer ton activité</p>
-            <h2 className="display-6 font-serif">Les Freelancers</h2>
+            <h2 className="display-6 font-serif mb-3">Les Freelancers</h2>
+          </div>
+
+          {/* Barre de Recherche et Filtre Métiers */}
+          <div className="row g-3 justify-content-center mb-5">
+            <div className="col-md-6 col-lg-5">
+              <div className="input-group input-group-lg shadow-sm rounded-3 overflow-hidden" style={{ border: '1px solid rgba(38, 33, 92, 0.15)' }}>
+                <span className="input-group-text bg-white border-0 text-muted ps-3">
+                  <i className="bi bi-search"></i>
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-0 fs-6 ps-2"
+                  placeholder="Ralph Développeur"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button className="btn bg-white border-0 text-muted" type="button" onClick={() => setSearchQuery('')}>
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="col-md-5 col-lg-4">
+              <div className="input-group input-group-lg shadow-sm rounded-3 overflow-hidden" style={{ border: '1px solid rgba(38, 33, 92, 0.15)' }}>
+                <span className="input-group-text bg-white border-0 text-muted ps-3">
+                  <i className="bi bi-funnel"></i>
+                </span>
+                <select
+                  className="form-select border-0 fs-6 ps-2 text-title"
+                  value={selectedProfession}
+                  onChange={(e) => setSelectedProfession(e.target.value)}
+                >
+                  {professionOptions.map((prof) => (
+                    <option key={prof} value={prof}>
+                      {prof}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
           
           {loading ? (
@@ -169,33 +293,129 @@ export default function Freelancers({ user, onStart }) {
               <p>{fetchError}</p>
               <button className="btn btn-outline-custom mt-3" onClick={fetchFreelancers}>Réessayer</button>
             </div>
-          ) : freelancers.length === 0 ? (
-            <div className="text-center text-muted">
-              <p>Aucun profil freelancer pour le moment.</p>
-              <button className="btn btn-outline-custom mt-3" onClick={handleCreateProfile}>Soyez le premier !</button>
+          ) : filteredAndSortedFreelancers.length === 0 ? (
+            <div className="text-center text-muted py-4">
+              <i className="bi bi-person-exclamation fs-1 d-block mb-2 text-muted"></i>
+              <p className="fs-5">Aucun profil freelancer ne correspond à tes critères de recherche.</p>
+              <button className="btn btn-outline-custom mt-2" onClick={() => { setSearchQuery(''); setSelectedProfession('Tous les métiers'); }}>
+                Réinitialiser la recherche
+              </button>
             </div>
           ) : (
             <div className="row g-4">
-              {freelancers.map((freelancer) => {
+              {filteredAndSortedFreelancers.map((freelancer) => {
+                const isUserVerified = Boolean(verifiedUsers[freelancer.user_id]);
+                const whatsappClean = freelancer.whatsapp ? freelancer.whatsapp.replace(/\D/g, '') : '';
+                const whatsappUrl = whatsappClean ? `https://wa.me/${whatsappClean}` : null;
+                const telegramClean = freelancer.telegram ? freelancer.telegram.replace(/^@/, '').trim() : '';
+                const telegramUrl = telegramClean ? (telegramClean.startsWith('http') ? telegramClean : `https://t.me/${telegramClean}`) : null;
+                const facebookUrl = freelancer.facebook ? (freelancer.facebook.startsWith('http') ? freelancer.facebook : `https://${freelancer.facebook}`) : null;
+                const instagramClean = freelancer.instagram ? freelancer.instagram.replace(/^@/, '').trim() : '';
+                const instagramUrl = instagramClean ? (instagramClean.startsWith('http') ? instagramClean : `https://instagram.com/${instagramClean}`) : null;
+                const portfolioUrl = freelancer.site_web ? (freelancer.site_web.startsWith('http') ? freelancer.site_web : `https://${freelancer.site_web}`) : null;
+
                 return (
                 <div className="col-md-4" key={freelancer.id}>
-                  <article className="h-100 p-4 border rounded-3 d-flex flex-column align-items-center text-center">
-                    <div 
-                      className="rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-sm" 
-                      style={{ width: '80px', height: '80px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}
-                    >
-                      <i className="bi bi-person fs-1"></i>
+                  <article className="h-100 p-4 border rounded-4 d-flex flex-column align-items-center text-center bg-white shadow-sm hover-shadow transition-all position-relative">
+                    {freelancer.photo_url ? (
+                      <img
+                        src={freelancer.photo_url}
+                        alt={freelancer.nom_freelancer}
+                        className="rounded-circle mb-3 shadow-sm"
+                        style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #EEEDFE' }}
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
+                      />
+                    ) : (
+                      <div
+                        className="rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-sm"
+                        style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}
+                      >
+                        <i className="bi bi-person fs-1"></i>
+                      </div>
+                    )}
+
+                    <div className="d-flex align-items-center justify-content-center gap-1 mb-1">
+                      <h3 className="font-serif h5 mb-0 text-title">{freelancer.nom_freelancer}</h3>
+                      {isUserVerified && (
+                        <img 
+                          src={verifieBadge} 
+                          alt="Badge vérifié" 
+                          title="les profils verifier son ceux que nous avons verifier personellement" 
+                          style={{ width: '20px', height: '20px', objectFit: 'contain', cursor: 'pointer' }}
+                        />
+                      )}
                     </div>
-                    <h3 className="font-serif h5 mb-1">{freelancer.nom_freelancer}</h3>
-                    <p className="text-muted small mb-3 fw-medium">{freelancer.activite}</p>
-                    <p className="text-body-custom mb-4" style={{ fontSize: '0.9rem', flexGrow: 1 }}>
+
+                    <p className="text-muted small mb-2 fw-medium">{freelancer.activite}</p>
+                    <p className="text-body-custom mb-3" style={{ fontSize: '0.9rem', flexGrow: 1 }}>
                       {truncateWords(freelancer.description, 20)}
                     </p>
+
+                    {/* Boutons de contact direct */}
+                    <div className="d-flex flex-wrap justify-content-center gap-2 mb-3 w-100">
+                      {whatsappUrl && (
+                        <a 
+                          href={whatsappUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn btn-sm btn-outline-success rounded-pill px-3 py-1 d-flex align-items-center gap-1"
+                          style={{ fontSize: '0.8rem' }}
+                        >
+                          <i className="bi bi-whatsapp"></i> WhatsApp
+                        </a>
+                      )}
+                      {portfolioUrl && (
+                        <a 
+                          href={portfolioUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 d-flex align-items-center gap-1"
+                          style={{ fontSize: '0.8rem' }}
+                        >
+                          <i className="bi bi-globe"></i> Portfolio
+                        </a>
+                      )}
+                      {telegramUrl && (
+                        <a 
+                          href={telegramUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn btn-sm rounded-pill px-3 py-1 d-flex align-items-center gap-1 text-white"
+                          style={{ fontSize: '0.8rem', backgroundColor: '#229ED9', borderColor: '#229ED9' }}
+                        >
+                          <i className="bi bi-telegram"></i> Telegram
+                        </a>
+                      )}
+                      {facebookUrl && (
+                        <a 
+                          href={facebookUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                          style={{ width: '32px', height: '32px' }}
+                          title="Facebook"
+                        >
+                          <i className="bi bi-facebook text-primary"></i>
+                        </a>
+                      )}
+                      {instagramUrl && (
+                        <a 
+                          href={instagramUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                          style={{ width: '32px', height: '32px' }}
+                          title="Instagram"
+                        >
+                          <i className="bi bi-instagram text-danger"></i>
+                        </a>
+                      )}
+                    </div>
                     
                     {user && (
                       <div className="rating-container mt-auto pt-3 border-top w-100">
                         {user.id === freelancer.user_id ? (
-                           <p className="small text-muted mb-2">Votre note actuelle (désactivé)</p>
+                           <p className="small text-muted mb-2"><i className="bi bi-star-fill text-warning me-1"></i>Ton profil</p>
                         ) : (
                            <p className="small text-muted mb-2">Notez ce freelancer</p>
                         )}
@@ -213,9 +433,14 @@ export default function Freelancers({ user, onStart }) {
                             ></i>
                           ))}
                         </div>
-                        <p className="small text-muted mt-2 mb-0" style={{ fontSize: '0.75rem' }}>
-                          <i className="bi bi-person-check me-1"></i>
-                          {ratingCounts[freelancer.id] || 0} avis
+                        <p className="small text-muted mt-2 mb-0 d-flex align-items-center justify-content-center gap-1" style={{ fontSize: '0.75rem' }}>
+                          <i className="bi bi-person-check"></i>
+                          <span>{ratingCounts[freelancer.id] || 0} avis</span>
+                          {freelancer.avgRating > 0 && (
+                            <span className="badge text-bg-warning ms-1" style={{ fontSize: '0.7rem' }}>
+                              ★ {freelancer.avgRating.toFixed(1)}
+                            </span>
+                          )}
                         </p>
                       </div>
                     )}
@@ -241,6 +466,7 @@ export default function Freelancers({ user, onStart }) {
   );
 }
 
+
 function CreateFreelancerModal({ user, onClose, onComplete }) {
   const safeName = (user?.user_metadata?.name || user?.user_metadata?.full_name || '');
   const splitName = safeName.split(' ');
@@ -251,9 +477,15 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     nom: defaultNom,
     prenom: defaultPrenom,
     nom_freelancer: '',
+    photo_url: '',
     age: '',
     date_naissance: '',
     whatsapp: '',
+    telegram: '',
+    facebook: '',
+    instagram: '',
+    linkedin: '',
+    twitter: '',
     reseaux_sociaux: '',
     site_web: '',
     activite: '',
@@ -268,24 +500,52 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePhotoFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError("La photo ne doit pas dépasser 2 Mo.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, photo_url: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const reseaux = { links: formData.reseaux_sociaux.split(',').map(l => l.trim()).filter(l => l) };
-      
+      const reseauxLinks = [
+        formData.facebook,
+        formData.instagram,
+        formData.telegram,
+        formData.linkedin,
+        formData.twitter,
+        ...(formData.reseaux_sociaux ? formData.reseaux_sociaux.split(',').map(l => l.trim()) : [])
+      ].filter(Boolean);
+
       const { error: insertError } = await supabase.from('freelancers').insert({
         user_id: user.id,
         nom: formData.nom,
         prenom: formData.prenom,
         nom_freelancer: formData.nom_freelancer,
+        photo_url: formData.photo_url || null,
         age: formData.age ? parseInt(formData.age) : null,
         date_naissance: formData.date_naissance || null,
-        whatsapp: formData.whatsapp,
-        reseaux_sociaux: reseaux,
-        site_web: formData.site_web,
+        whatsapp: formData.whatsapp || null,
+        telegram: formData.telegram || null,
+        facebook: formData.facebook || null,
+        instagram: formData.instagram || null,
+        linkedin: formData.linkedin || null,
+        twitter: formData.twitter || null,
+        reseaux_sociaux: { links: reseauxLinks },
+        site_web: formData.site_web || null,
         activite: formData.activite,
         description: formData.description,
         annees_experience: formData.annees_experience ? parseInt(formData.annees_experience) : 0,
@@ -318,6 +578,28 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
           <div className="modal-body py-4 px-4" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
             <form onSubmit={handleSubmit}>
               <div className="row g-3">
+                {/* Aperçu / Photo de profil */}
+                <div className="col-12 text-center mb-2">
+                  <div className="d-inline-block position-relative">
+                    {formData.photo_url ? (
+                      <img src={formData.photo_url} alt="Aperçu" className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid var(--folio-primary)' }} />
+                    ) : (
+                      <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mx-auto" style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}>
+                        <i className="bi bi-camera fs-2"></i>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <label className="btn btn-sm btn-outline-custom me-2">
+                      <i className="bi bi-upload me-1"></i>Choisir une photo
+                      <input type="file" accept="image/*" className="d-none" onChange={handlePhotoFileChange} disabled={loading} />
+                    </label>
+                  </div>
+                  <div className="mt-1">
+                    <input type="url" name="photo_url" className="form-control form-control-sm text-center mx-auto" style={{ maxWidth: '380px' }} placeholder="ou coller l'URL de la photo (https://...)" value={formData.photo_url} onChange={handleChange} disabled={loading} />
+                  </div>
+                </div>
+
                 <div className="col-md-6">
                   <label className="form-label text-body-custom small">Nom</label>
                   <input type="text" name="nom" className="form-control" value={formData.nom} onChange={handleChange} required disabled={loading} />
@@ -327,12 +609,12 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
                   <input type="text" name="prenom" className="form-control" value={formData.prenom} onChange={handleChange} required disabled={loading} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Nom de freelancer</label>
-                  <input type="text" name="nom_freelancer" className="form-control" value={formData.nom_freelancer} onChange={handleChange} required disabled={loading} />
+                  <label className="form-label text-body-custom small">Nom du profil / Nom de freelancer</label>
+                  <input type="text" name="nom_freelancer" className="form-control" placeholder="ex: John Dev" value={formData.nom_freelancer} onChange={handleChange} required disabled={loading} />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label text-body-custom small">Activité / Spécialité</label>
-                  <input type="text" name="activite" className="form-control" placeholder="ex: Développeur Web" value={formData.activite} onChange={handleChange} required disabled={loading} />
+                  <input type="text" name="activite" className="form-control" placeholder="ex: Développeur Web Fullstack" value={formData.activite} onChange={handleChange} required disabled={loading} />
                 </div>
                 <div className="col-md-4">
                   <label className="form-label text-body-custom small">Âge</label>
@@ -346,21 +628,37 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
                   <label className="form-label text-body-custom small">Années d'expérience</label>
                   <input type="number" name="annees_experience" className="form-control" value={formData.annees_experience} onChange={handleChange} disabled={loading} />
                 </div>
+
+                {/* Moyens de contact */}
+                <div className="col-12 mt-4"><h6 className="font-serif fw-bold text-title mb-0"><i className="bi bi-chat-dots me-2 text-primary"></i>Contacts & Portfolio</h6></div>
                 <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Numéro WhatsApp</label>
-                  <input type="text" name="whatsapp" className="form-control" value={formData.whatsapp} onChange={handleChange} disabled={loading} />
+                  <label className="form-label text-body-custom small"><i className="bi bi-whatsapp text-success me-1"></i>Numéro WhatsApp</label>
+                  <input type="text" name="whatsapp" className="form-control" placeholder="+22507000000" value={formData.whatsapp} onChange={handleChange} disabled={loading} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Site web personnel</label>
-                  <input type="url" name="site_web" className="form-control" placeholder="https://" value={formData.site_web} onChange={handleChange} disabled={loading} />
+                  <label className="form-label text-body-custom small"><i className="bi bi-globe text-primary me-1"></i>Portfolio / Site web</label>
+                  <input type="url" name="site_web" className="form-control" placeholder="https://mon-portfolio.com" value={formData.site_web} onChange={handleChange} disabled={loading} />
                 </div>
-                <div className="col-12">
-                  <label className="form-label text-body-custom small">Réseaux sociaux (séparés par des virgules)</label>
-                  <input type="text" name="reseaux_sociaux" className="form-control" placeholder="Liens LinkedIn, Twitter, etc." value={formData.reseaux_sociaux} onChange={handleChange} disabled={loading} />
+                <div className="col-md-6">
+                  <label className="form-label text-body-custom small"><i className="bi bi-telegram text-info me-1"></i>Telegram (Pseudo ou lien)</label>
+                  <input type="text" name="telegram" className="form-control" placeholder="@mon_telegram" value={formData.telegram} onChange={handleChange} disabled={loading} />
                 </div>
-                <div className="col-12">
+                <div className="col-md-6">
+                  <label className="form-label text-body-custom small"><i className="bi bi-facebook text-primary me-1"></i>Facebook (Lien)</label>
+                  <input type="url" name="facebook" className="form-control" placeholder="https://facebook.com/monprofil" value={formData.facebook} onChange={handleChange} disabled={loading} />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label text-body-custom small"><i className="bi bi-instagram text-danger me-1"></i>Instagram (Lien ou pseudo)</label>
+                  <input type="text" name="instagram" className="form-control" placeholder="@mon_insta" value={formData.instagram} onChange={handleChange} disabled={loading} />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label text-body-custom small"><i className="bi bi-linkedin text-primary me-1"></i>LinkedIn (Lien)</label>
+                  <input type="url" name="linkedin" className="form-control" placeholder="https://linkedin.com/in/monprofil" value={formData.linkedin} onChange={handleChange} disabled={loading} />
+                </div>
+
+                <div className="col-12 mt-3">
                   <label className="form-label text-body-custom small">Description</label>
-                  <textarea name="description" className="form-control" rows="4" value={formData.description} onChange={handleChange} required disabled={loading}></textarea>
+                  <textarea name="description" className="form-control" rows="4" placeholder="Décris tes services, compétences et propositions de valeur..." value={formData.description} onChange={handleChange} required disabled={loading}></textarea>
                 </div>
               </div>
 
@@ -372,7 +670,7 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
 
               <button type="submit" className="btn btn-primary-custom w-100 py-2 mt-4" disabled={loading}>
                 {loading ? <span className="spinner-border spinner-border-sm me-2" role="status"></span> : <i className="bi bi-upload me-2"></i>}
-                Publier
+                Publier le profil
               </button>
             </form>
           </div>
@@ -381,3 +679,4 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     </div>
   );
 }
+

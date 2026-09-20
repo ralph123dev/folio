@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
+import verifieBadge from '../assets/verifie.png';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
 
@@ -10,11 +11,21 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showOptimModal, setShowOptimModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [showMyProfilesModal, setShowMyProfilesModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
   const [profileData, setProfileData] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const isUserVerified = useMemo(() => {
+    return Boolean(
+      profileData?.is_verified &&
+      profileData?.verified_until &&
+      new Date(profileData.verified_until) > new Date()
+    );
+  }, [profileData]);
+
 
   const fetchProfile = async () => {
     try {
@@ -113,10 +124,119 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     }));
   }, [visits]);
 
+  const [chartMetric, setMetric] = useState('visits'); // 'visits' | 'stars'
+  const [freelancerProfiles, setFreelancerProfiles] = useState([]);
+  const [selectedProfileId, setSelectedProfileId] = useState('all');
+  const [ratingsList, setRatingsList] = useState([]);
+
+  // Auto-sync des paiements en attente en arrière-plan
+  useEffect(() => {
+    let active = true;
+    const syncPendingPayments = async () => {
+      try {
+        const { data: pendingTxs } = await supabase
+          .from('payment_transactions')
+          .select('provider_reference, user_id')
+          .eq('user_id', userData.id)
+          .eq('status', 'pending');
+
+        if (pendingTxs && pendingTxs.length > 0) {
+          for (const tx of pendingTxs) {
+            if (!active) break;
+            if (tx.provider_reference) {
+              await supabase.functions.invoke('saspay-verify-payment', {
+                body: { paymentId: tx.provider_reference, userId: userData.id },
+              });
+            }
+          }
+          await fetchProfile();
+        }
+      } catch (err) {
+        console.error('Erreur lors de la synchronisation des paiements en arrière-plan:', err);
+      }
+    };
+
+    syncPendingPayments();
+    return () => { active = false; };
+  }, [userData.id]);
+
+  // Récupérer les profils freelancers de l'utilisateur et leurs notes en temps réel
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchFreelancersAndRatings = async () => {
+      const { data: profiles } = await supabase
+        .from('freelancers')
+        .select('*')
+        .eq('user_id', userData.id);
+
+      if (!isMounted) return;
+      if (profiles && profiles.length > 0) {
+        setFreelancerProfiles(profiles);
+        const profileIds = profiles.map(p => p.id);
+
+        const { data: ratings } = await supabase
+          .from('freelancer_ratings')
+          .select('*')
+          .in('freelancer_id', profileIds);
+
+        if (isMounted && ratings) {
+          setRatingsList(ratings);
+        }
+      }
+    };
+
+    fetchFreelancersAndRatings();
+
+    // Abonnement Realtime pour la réception d'étoiles instantanées
+    const channel = supabase
+      .channel(`ratings-dashboard-${userData.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freelancer_ratings' }, () => {
+        fetchFreelancersAndRatings();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freelancers', filter: `user_id=eq.${userData.id}` }, () => {
+        fetchFreelancersAndRatings();
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [userData.id]);
+
+  // Filtrer les notes selon le profil sélectionné
+  const filteredRatings = useMemo(() => {
+    if (selectedProfileId === 'all') return ratingsList;
+    return ratingsList.filter(r => r.freelancer_id === selectedProfileId);
+  }, [ratingsList, selectedProfileId]);
+
+  const weeklyRatings = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - (6 - index));
+      return date;
+    });
+    return days.map((date) => {
+      const dayRatings = filteredRatings.filter((r) => new Date(r.created_at).toDateString() === date.toDateString());
+      const sum = dayRatings.reduce((acc, curr) => acc + curr.rating, 0);
+      const avg = dayRatings.length > 0 ? (sum / dayRatings.length).toFixed(1) : 0;
+      return {
+        label: date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', ''),
+        count: dayRatings.length,
+        avgRating: Number(avg),
+        value: dayRatings.length, // pour la courbe
+      };
+    });
+  }, [filteredRatings]);
+
+  const currentChartData = chartMetric === 'visits' ? weeklyVisits : weeklyRatings;
+
   const chartPoints = useMemo(() => {
-    const max = Math.max(...weeklyVisits.map((day) => day.value), 1);
-    return weeklyVisits.map((day, index) => `${index * 100},${90 - (day.value / max) * 70}`).join(' ');
-  }, [weeklyVisits]);
+    const max = Math.max(...currentChartData.map((day) => day.value), 1);
+    return currentChartData.map((day, index) => `${index * 100},${90 - (day.value / max) * 70}`).join(' ');
+  }, [currentChartData]);
 
   const handleThemeChange = (nextTheme) => {
     setTheme(nextTheme);
@@ -159,7 +279,12 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
               </button>
               <ul className="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="profileDropdown" style={{ minWidth: '290px', borderRadius: '12px', padding: '10px' }}>
                 <li className="px-3 py-2 border-bottom mb-2">
-                  <p className="fw-bold mb-0 text-title" style={{ fontSize: '0.95rem' }}>{userData.nom_complet || 'Utilisateur'}</p>
+                  <div className="d-flex align-items-center gap-1">
+                    <p className="fw-bold mb-0 text-title" style={{ fontSize: '0.95rem' }}>{userData.nom_complet || 'Utilisateur'}</p>
+                    {isUserVerified && (
+                      <img src={verifieBadge} alt="Vérifié" title="les profils verifier son ceux que nous avons verifier personellement" style={{ width: '18px', height: '18px', objectFit: 'contain', cursor: 'pointer' }} />
+                    )}
+                  </div>
                   <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{userData.email}</p>
                 </li>
                 <li>
@@ -169,6 +294,19 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                     <span className="ms-2 fw-bold" style={{ color: 'var(--folio-primary)' }}>
                       {Number(profileData?.solde || 0).toLocaleString('fr-FR')} F CFA
                     </span>
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item py-2 d-flex justify-content-between align-items-center" onClick={() => setShowVerificationModal(true)}>
+                    <span>
+                      <img src={verifieBadge} alt="Badge" title="les profils verifier son ceux que nous avons verifier personellement" className="me-2" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                      <span className="fw-medium text-title">Badge de vérification</span>
+                    </span>
+                    {isUserVerified ? (
+                      <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>Actif</span>
+                    ) : (
+                      <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>500 F/mois</span>
+                    )}
                   </button>
                 </li>
                 <li><hr className="dropdown-divider" /></li>
@@ -226,11 +364,25 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
 
       <div className="container-fluid px-4 py-4">
         {/* Message de bienvenue */}
-        <div className="mb-4">
-          <h1 className="font-serif mb-1" style={{ color: 'var(--folio-title)', fontSize: '1.75rem' }}>
-            Bienvenue, {userData.nom_complet || 'Développeur'} <span style={{ fontSize: '1.5rem' }}>👋</span>
-          </h1>
-          <p className="text-body-custom mb-0">Voici ton espace personnel Folio.</p>
+        <div className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h1 className="font-serif mb-1 d-flex align-items-center gap-2" style={{ color: 'var(--folio-title)', fontSize: '1.75rem' }}>
+              <span>Bienvenue, {userData.nom_complet || 'Développeur'}</span>
+              {isUserVerified && (
+                <img src={verifieBadge} alt="Compte vérifié" title="les profils verifier son ceux que nous avons verifier personellement" style={{ width: '26px', height: '26px', objectFit: 'contain', cursor: 'pointer' }} />
+              )}
+              <span style={{ fontSize: '1.5rem' }}>👋</span>
+            </h1>
+            <p className="text-body-custom mb-0">Voici ton espace personnel Folio.</p>
+          </div>
+
+          {freelancerProfiles.length > 0 && (
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                <i className="bi bi-person-check-fill me-1"></i>{freelancerProfiles.length} profil{freelancerProfiles.length > 1 ? 's' : ''} Freelancer actif{freelancerProfiles.length > 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Cards d'informations personnelles */}
@@ -294,27 +446,91 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
           {/* Colonne principale */}
           <div className="col-lg-8">
             <div className="bg-white rounded-3 p-4" style={{ border: '1px solid rgba(38, 33, 92, 0.08)' }}>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="font-serif mb-0" style={{ color: 'var(--folio-title)' }}>
-                  <i className="bi bi-graph-up me-2" style={{ color: 'var(--folio-primary)' }}></i>
-                  Visiteurs cette semaine
-                </h5>
+              <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                <div className="d-flex align-items-center gap-2">
+                  <div className="btn-group" role="group" aria-label="Choisir la métrique du graphique">
+                    <button 
+                      type="button" 
+                      className={`btn btn-sm ${chartMetric === 'visits' ? 'btn-primary-custom' : 'btn-outline-custom'}`}
+                      onClick={() => setMetric('visits')}
+                    >
+                      <i className="bi bi-graph-up me-1"></i>Visiteurs
+                    </button>
+                    <button 
+                      type="button" 
+                      className={`btn btn-sm ${chartMetric === 'stars' ? 'btn-primary-custom' : 'btn-outline-custom'}`}
+                      onClick={() => setMetric('stars')}
+                    >
+                      <i className="bi bi-star-fill text-warning me-1"></i>Étoiles reçues ⭐
+                    </button>
+                  </div>
+                </div>
+
+                {chartMetric === 'stars' && freelancerProfiles.length > 0 && (
+                  <div className="d-flex align-items-center gap-2">
+                    <label htmlFor="select-profile-filter" className="small text-muted mb-0 fw-medium">Profil :</label>
+                    <select
+                      id="select-profile-filter"
+                      className="form-select form-select-sm"
+                      style={{ maxWidth: '200px', borderRadius: '8px' }}
+                      value={selectedProfileId}
+                      onChange={(e) => setSelectedProfileId(e.target.value)}
+                    >
+                      <option value="all">Tous mes profils ({freelancerProfiles.length})</option>
+                      {freelancerProfiles.map(p => (
+                        <option key={p.id} value={p.id}>{p.nom_freelancer}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <span className="badge rounded-pill" style={{ backgroundColor: '#EEEDFE', color: 'var(--folio-primary)', fontSize: '0.8rem' }}>
-                  {visits.length} visite{visits.length > 1 ? 's' : ''} cette semaine
+                  {chartMetric === 'visits' ? (
+                    `${visits.length} visite${visits.length > 1 ? 's' : ''} cette semaine`
+                  ) : (
+                    `${filteredRatings.length} avis / étoile${filteredRatings.length > 1 ? 's' : ''} en temps réel`
+                  )}
                 </span>
               </div>
+
               <div className="visitors-chart rounded-3 p-3" style={{ backgroundColor: '#FAFAFE', border: '1px solid rgba(38, 33, 92, 0.08)' }}>
-                <svg viewBox="0 0 600 120" className="w-100" role="img" aria-label="Courbe des visiteurs des sept derniers jours">
-                  <polyline points={chartPoints} fill="none" stroke="var(--folio-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  {weeklyVisits.map((day, index) => <circle key={day.label} cx={index * 100} cy={90 - (day.value / Math.max(...weeklyVisits.map((item) => item.value), 1)) * 70} r="5" fill="white" stroke="var(--folio-primary)" strokeWidth="3" />)}
+                <svg viewBox="0 0 600 120" className="w-100" role="img" aria-label="Courbe du tableau de bord">
+                  <polyline points={chartPoints} fill="none" stroke={chartMetric === 'stars' ? '#f59e0b' : 'var(--folio-primary)'} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                  {currentChartData.map((day, index) => (
+                    <circle 
+                      key={day.label} 
+                      cx={index * 100} 
+                      cy={90 - (day.value / Math.max(...currentChartData.map((item) => item.value), 1)) * 70} 
+                      r="5" 
+                      fill="white" 
+                      stroke={chartMetric === 'stars' ? '#f59e0b' : 'var(--folio-primary)'} 
+                      strokeWidth="3" 
+                    />
+                  ))}
                 </svg>
-                <div className="d-flex justify-content-between text-muted small px-1">
-                  {weeklyVisits.map((day) => <span key={day.label}>{day.label}</span>)}
+                <div className="d-flex justify-content-between text-muted small px-1 mt-2">
+                  {currentChartData.map((day) => (
+                    <div key={day.label} className="text-center">
+                      <span className="d-block fw-bold" style={{ fontSize: '0.75rem' }}>{day.label}</span>
+                      <span className="d-block text-muted" style={{ fontSize: '0.7rem' }}>
+                        {chartMetric === 'stars' ? (day.value > 0 ? `+${day.value} ⭐` : '0') : day.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                {!visits.length && <p className="text-center text-body-custom small mt-3 mb-0">Les visites apparaîtront ici dès qu'un visiteur ouvrira ton portfolio.</p>}
+                {chartMetric === 'visits' && !visits.length && (
+                  <p className="text-center text-body-custom small mt-3 mb-0">Les visites apparaîtront ici dès qu'un visiteur ouvrira ton portfolio.</p>
+                )}
+                {chartMetric === 'stars' && !filteredRatings.length && (
+                  <p className="text-center text-body-custom small mt-3 mb-0">
+                    <i className="bi bi-star me-1 text-warning"></i>
+                    Aucune étoile reçue pour le moment sur {selectedProfileId === 'all' ? 'tes profils' : 'ce profil'}. Tes étoiles apparaîtront en temps réel dès qu'un utilisateur votera !
+                  </p>
+                )}
               </div>
             </div>
           </div>
+
 
           {/* Colonne latérale */}
           <div className="col-lg-4">
@@ -488,9 +704,173 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
           onClose={() => setShowMyProfilesModal(false)}
         />
       )}
+
+      {showVerificationModal && (
+        <VerificationModal
+          userData={userData}
+          profileData={profileData}
+          onRefreshProfile={fetchProfile}
+          onOpenRecharge={() => setShowRechargeModal(true)}
+          triggerFireworks={triggerFireworks}
+          onClose={() => setShowVerificationModal(false)}
+        />
+      )}
     </div>
   );
 }
+
+/* ───────────────────────────────────────────────────────────────────
+  MODAL DU BADGE DE VÉRIFICATION — 500 F CFA / Mois par Utilisateur
+─────────────────────────────────────────────────────────────────── */
+function VerificationModal({ userData, profileData, onRefreshProfile, onOpenRecharge, triggerFireworks, onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  const isVerified = Boolean(
+    profileData?.is_verified &&
+    profileData?.verified_until &&
+    new Date(profileData.verified_until) > new Date()
+  );
+
+  const handleSubscribe = async () => {
+    setLoading(true);
+    setError(null);
+
+    const solde = Number(profileData?.solde || 0);
+    if (solde < 500) {
+      setError("Solde insuffisant ! Vous disposez de " + solde.toLocaleString('fr-FR') + " F CFA. Il vous faut au moins 500 F CFA pour activer le badge.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('subscribe_verification_badge', {
+        target_user_id: userData.id
+      });
+
+      if (rpcError) {
+        // Fallback direct si la fonction RPC n'est pas encore rechargée sur PostgREST
+        const currentExp = profileData?.verified_until && new Date(profileData.verified_until) > new Date()
+          ? new Date(profileData.verified_until)
+          : new Date();
+        currentExp.setDate(currentExp.getDate() + 30);
+
+        const { error: updateError } = await supabase
+          .from('profils')
+          .update({
+            solde: solde - 500,
+            is_verified: true,
+            verified_until: currentExp.toISOString()
+          })
+          .eq('id', userData.id);
+
+        if (updateError) throw updateError;
+      } else if (data && !data.success) {
+        throw new Error(data.message);
+      }
+
+      setSuccessMsg("Votre Badge de vérification est maintenant actif pour 30 jours !");
+      await onRefreshProfile();
+      triggerFireworks();
+    } catch (err) {
+      console.error("Erreur d'activation du badge:", err);
+      setError(err?.message || "Une erreur est survenue lors de l'activation.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal fade show d-block"
+      tabIndex="-1"
+      role="dialog"
+      style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 1050 }}
+      onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
+    >
+      <div className="modal-dialog modal-dialog-centered" role="document">
+        <div className="modal-content border-0 shadow" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+          <div className="modal-header border-0 pb-0 px-4 pt-4 d-flex justify-content-between align-items-center">
+            <h5 className="modal-title font-serif fw-bold fs-4 text-title d-flex align-items-center gap-2">
+              <img src={verifieBadge} alt="Badge" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+              Badge de vérification
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Fermer" disabled={loading}></button>
+          </div>
+          <div className="modal-body py-4 px-4">
+            {successMsg ? (
+              <div className="text-center py-3">
+                <i className="bi bi-patch-check-fill text-success" style={{ fontSize: '3.5rem' }}></i>
+                <h4 className="font-serif fw-bold text-title mt-2">Félicitations !</h4>
+                <p className="text-body-custom">{successMsg}</p>
+                <p className="small text-muted mb-4">Le badge s'affiche désormais à côté de votre nom et sur tous vos profils freelancers.</p>
+                <button type="button" className="btn btn-primary-custom w-100" onClick={onClose}>Fermer</button>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-4 p-3 rounded-3" style={{ backgroundColor: '#F4F1FE' }}>
+                  <img src={verifieBadge} alt="Vérifié" className="mb-2 shadow-sm rounded-circle p-1 bg-white" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
+                  <h6 className="fw-bold text-title mb-1">Certifiez votre identité sur Folio</h6>
+                  <p className="small text-muted mb-0">Le badge de vérification renforce la confiance des clients et augmente vos opportunités.</p>
+                </div>
+
+                <div className="border rounded-3 p-3 mb-4 bg-white">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="text-body-custom">Tarif mensuel</span>
+                    <strong className="fs-5 text-primary">500 F CFA / mois</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="text-body-custom">Votre solde actuel</span>
+                    <strong className={Number(profileData?.solde || 0) >= 500 ? 'text-success' : 'text-danger'}>
+                      {Number(profileData?.solde || 0).toLocaleString('fr-FR')} F CFA
+                    </strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-body-custom">Portée du badge</span>
+                    <span className="badge text-bg-light border">Par utilisateur (tous profils)</span>
+                  </div>
+                </div>
+
+                {isVerified && (
+                  <div className="alert alert-success py-2 px-3 small mb-3">
+                    <i className="bi bi-check-circle-fill me-2"></i>
+                    Votre badge est actuellement actif jusqu'au {new Date(profileData.verified_until).toLocaleDateString('fr-FR')}. Cliquez ci-dessous pour prolonger de 30 jours supplémentaires.
+                  </div>
+                )}
+
+                {error && (
+                  <div className="alert alert-danger py-2 px-3 small mb-3">
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                    {error}
+                    {Number(profileData?.solde || 0) < 500 && (
+                      <div className="mt-2">
+                        <button type="button" className="btn btn-sm btn-primary-custom" onClick={() => { onClose(); onOpenRecharge(); }}>
+                          <i className="bi bi-wallet2 me-1"></i>Recharger mon solde
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="d-flex gap-2">
+                  <button type="button" className="btn btn-outline-custom w-50 py-2" onClick={onClose} disabled={loading}>
+                    Annuler
+                  </button>
+                  <button type="button" className="btn btn-primary-custom w-50 py-2" onClick={handleSubscribe} disabled={loading}>
+                    {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-patch-check me-1"></i>}
+                    {isVerified ? 'Prolonger (500 F)' : 'Activer (500 F)'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 /* ───────────────────────────────────────────────────────────────────
   MODAL DE RECHARGE — Paiement SasPay Mobile Money
@@ -693,6 +1073,9 @@ function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
           } catch {
             // La réponse peut ne pas être du JSON selon le service distant.
           }
+        }
+        if (providerError?.includes('no_route_available') || providerError?.toLowerCase().includes('aucun fournisseur disponible')) {
+          providerError = 'Ce moyen de paiement est temporairement indisponible chez SasPay. Choisis un autre réseau puis réessaie.';
         }
         setError(providerError
           ? `Erreur SasPay : ${providerError}`

@@ -238,6 +238,11 @@ html {
   box-shadow: 0 12px 30px rgba(83, 74, 183, 0.16);
 }
 
+.pricing-card-trial {
+  border-color: rgba(62, 156, 92, 0.3);
+  box-shadow: 0 12px 30px rgba(62, 156, 92, 0.1);
+}
+
 .pricing-icon {
   display: flex;
   align-items: center;

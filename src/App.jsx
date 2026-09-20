@@ -262,7 +262,17 @@ function App() {
       <main className="flex-grow-1">
         <Hero onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
         <HowItWorks />
-        <Features />
+        <Features
+          user={user}
+          onStart={() => { setAuthMode('signup'); setShowAuth(true); }}
+          onDashboard={() => {
+            if (dashboardData) {
+              setShowDashboard(true);
+            } else {
+              setShowOnboarding(true);
+            }
+          }}
+        />
         <CtaSection onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
       </main>
       <Footer />

@@ -127,7 +127,7 @@ const FolioVideo = () => {
   );
 };
 
-const Features = () => {
+const Features = ({ user, onStart, onDashboard }) => {
   return (
     <section id="features" className="py-5 bg-white">
       <div className="container py-5 my-3">
@@ -206,7 +206,29 @@ const Features = () => {
           </div>
 
           <div className="row g-4 align-items-stretch">
-            <div className="col-lg-4 reveal reveal-delay-1">
+            <div className="col-lg-3 reveal reveal-delay-1">
+              <article className="pricing-card pricing-card-trial h-100 d-flex flex-column p-4 p-xl-5">
+                <div className="d-flex justify-content-between align-items-start mb-4">
+                  <div className="pricing-icon"><i className="bi bi-stars"></i></div>
+                  <span className="badge pricing-badge">Essai gratuit</span>
+                </div>
+                <h3 className="font-serif h4 mb-3">Découvrir Folio</h3>
+                <p className="text-body-custom flex-grow-1 mb-4">
+                  Teste Folio sans engagement avec un aperçu de ton trafic, les statistiques essentielles et ton espace personnel.
+                </p>
+                <div className="pricing-price mb-4">0 <small>F / 7 jours</small></div>
+                <button
+                  type="button"
+                  className="btn btn-primary-custom w-100"
+                  onClick={user ? onDashboard : onStart}
+                >
+                  <i className={`bi ${user ? 'bi-grid-1x2 me-2' : 'bi-person-plus me-2'}`}></i>
+                  {user ? 'Accéder à mon tableau de bord' : "S'inscrire"}
+                </button>
+              </article>
+            </div>
+
+            <div className="col-lg-3 reveal reveal-delay-2">
               <article className="pricing-card h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div className="pricing-icon"><i className="bi bi-people-fill"></i></div>
@@ -221,7 +243,7 @@ const Features = () => {
               </article>
             </div>
 
-            <div className="col-lg-4 reveal reveal-delay-2">
+            <div className="col-lg-3 reveal reveal-delay-3">
               <article className="pricing-card pricing-card-featured h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div className="pricing-icon"><i className="bi bi-search-heart-fill"></i></div>
@@ -236,7 +258,7 @@ const Features = () => {
               </article>
             </div>
 
-            <div className="col-lg-4 reveal reveal-delay-3">
+            <div className="col-lg-3 reveal reveal-delay-4">
               <article className="pricing-card h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div className="pricing-icon"><i className="bi bi-share-fill"></i></div>

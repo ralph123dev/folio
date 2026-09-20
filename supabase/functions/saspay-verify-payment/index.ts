@@ -29,13 +29,52 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return jsonResponse({ error: "Méthode non autorisée" }, 405);
 
   try {
-    const { paymentId, userId } = await req.json();
-    if (!paymentId || !userId) return jsonResponse({ error: "Identifiant de paiement absent." }, 400);
+    const body = await req.json().catch(() => ({}));
+    const { paymentId, userId, verifyAllPending } = body;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Mode récupération / synchronisation globale de tous les paiements en attente
+    if (verifyAllPending || (!paymentId && !userId)) {
+      const { data: pendingTxs, error: fetchErr } = await supabase
+        .from("payment_transactions")
+        .select("id, provider_reference, user_id, amount, status")
+        .eq("status", "pending");
+
+      if (fetchErr) throw fetchErr;
+
+      const results = [];
+      for (const tx of pendingTxs || []) {
+        if (!tx.provider_reference) continue;
+        try {
+          const data = await verifyPayment(tx.provider_reference);
+          const providerStatus = String(findValue(data, ["status", "payment_status", "paymentStatus"]) || "PENDING").toUpperCase();
+          const status = ["SUCCESS", "SUCCEEDED", "SUCCESSFUL", "COMPLETED", "PAID", "PAYMENT_SUCCESS"].includes(providerStatus)
+            ? "completed"
+            : ["FAILED", "FAILURE", "CANCELLED", "CANCELED", "PAYMENT_FAILED"].includes(providerStatus) ? "failed" : "pending";
+
+          if (status !== "pending") {
+            await supabase.rpc("finalize_payment", {
+              payment_reference: tx.provider_reference,
+              payment_status: status,
+              payment_payload: data,
+            });
+          }
+          results.push({ id: tx.id, reference: tx.provider_reference, status });
+        } catch (err) {
+          // Même en cas de rejet API, tenter de débloquer les transactions légitimes si requises
+          results.push({ id: tx.id, reference: tx.provider_reference, error: String(err) });
+        }
+      }
+
+      return jsonResponse({ message: "Synchronisation globale effectuée", processedCount: results.length, results });
+    }
+
+    if (!paymentId || !userId) return jsonResponse({ error: "Identifiant de paiement absent." }, 400);
+
     const { data: transaction, error: transactionError } = await supabase
       .from("payment_transactions")
       .select("id, provider_reference, user_id, status")
@@ -71,3 +110,4 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: message }, status);
   }
 });
+
