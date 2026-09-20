@@ -2,8 +2,37 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
 import verifieBadge from '../assets/verifie.png';
+import contactsFileA from '../assets/SBC_filtered_contacts_2026-08-23.vcf?raw';
+import contactsFileB from '../assets/SBC_filtered_contacts_2026-08-23 (1).vcf?raw';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
+
+const parseVcfContacts = (...files) => {
+  const contacts = [];
+  const seen = new Set();
+
+  files.join('\n').split(/END:VCARD/i).forEach((card) => {
+    const readField = (field) => {
+      const line = card.split(/\r?\n/).find((item) => new RegExp(`^${field}(?:;|:)`, 'i').test(item));
+      return line ? line.slice(line.indexOf(':') + 1).trim() : '';
+    };
+
+    const name = readField('FN').replace(/\s*SBC\s*$/i, '').trim();
+    const email = readField('EMAIL');
+    const phone = readField('TEL').replace(/[^\d+]/g, '');
+    const whatsappPhone = phone.replace(/\D/g, '');
+    const key = whatsappPhone || email;
+
+    if (key && (name || email || whatsappPhone) && !seen.has(key)) {
+      seen.add(key);
+      contacts.push({ name: name || 'Contact', email, phone, whatsappPhone });
+    }
+  });
+
+  return contacts;
+};
+
+const BOOST_CONTACTS = parseVcfContacts(contactsFileA, contactsFileB);
 
 export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -17,6 +46,20 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
   const [profileData, setProfileData] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [boostContacts, setBoostContacts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`folio-boost-contacts-${userData.id}`)) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [boostDetails, setBoostDetails] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`folio-boost-details-${userData.id}`)) || null;
+    } catch {
+      return null;
+    }
+  });
 
   const isUserVerified = useMemo(() => {
     return Boolean(
@@ -247,6 +290,28 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     event.preventDefault();
     if (!portfolioUrl.trim()) return;
     setShowAnalysisModal(true);
+  };
+
+  const handleBoostPurchase = async ({ secteur, tier }) => {
+    const { data, error } = await supabase.rpc('subscribe_contact_boost', {
+      target_user_id: userData.id,
+      target_sector: secteur.label,
+      contact_count: tier.contactCount,
+      boost_cost: tier.price,
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.message || 'Impossible de souscrire ce forfait.');
+
+    const selectedContacts = BOOST_CONTACTS.slice(0, Math.min(tier.contactCount, BOOST_CONTACTS.length));
+    const details = { secteur: secteur.label, count: tier.contactCount, price: tier.price };
+    setBoostContacts(selectedContacts);
+    setBoostDetails(details);
+    localStorage.setItem(`folio-boost-contacts-${userData.id}`, JSON.stringify(selectedContacts));
+    localStorage.setItem(`folio-boost-details-${userData.id}`, JSON.stringify(details));
+    await fetchProfile();
+    setShowAnalysisModal(false);
+    triggerFireworks();
   };
 
   const handleLogout = async () => {
@@ -528,6 +593,9 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </p>
                 )}
               </div>
+              {boostContacts.length > 0 && (
+                <BoostContactsList contacts={boostContacts} details={boostDetails} />
+              )}
             </div>
           </div>
 
@@ -689,11 +757,9 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       {showAnalysisModal && (
         <AnalysisModal
           portfolioUrl={portfolioUrl}
+          profileData={profileData}
+          onPurchase={handleBoostPurchase}
           onClose={() => setShowAnalysisModal(false)}
-          onComplete={() => {
-            setShowAnalysisModal(false);
-            triggerFireworks();
-          }}
         />
       )}
 
@@ -1076,6 +1142,9 @@ function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
         }
         if (providerError?.includes('no_route_available') || providerError?.toLowerCase().includes('aucun fournisseur disponible')) {
           providerError = 'Ce moyen de paiement est temporairement indisponible chez SasPay. Choisis un autre réseau puis réessaie.';
+        }
+        if (providerError?.toLowerCase().includes('passerelle') || providerError?.toLowerCase().includes('bad gateway')) {
+          providerError = 'SasPay est temporairement indisponible. Réessaie dans quelques instants ou choisis un autre réseau.';
         }
         setError(providerError
           ? `Erreur SasPay : ${providerError}`
@@ -1676,26 +1745,77 @@ const SECTEURS = [
 ];
 
 const TIERS = [
-  { id: 't1', label: '10 – 300',         sublabel: 'contacts prêts à visiter votre profil',  count: '300',   color: '#6366f1' },
-  { id: 't2', label: '301 – 1 300',      sublabel: 'contacts prêts à visiter votre profil',  count: '1 300', color: '#8b5cf6' },
-  { id: 't3', label: '1 301 – 15 000',   sublabel: 'contacts prêts à visiter votre profil',  count: '15k',   color: '#7c3aed' },
-  { id: 't4', label: '15 001 – 31 000',  sublabel: 'contacts prêts à visiter votre profil',  count: '31k',   color: '#5b21b6' },
-  { id: 't5', label: '5 000 – 10 000',   sublabel: 'contacts prêts à visiter votre profil',  count: '10k',   color: '#4c1d95' },
+  { id: 't1', label: '300', sublabel: 'contacts prêts à visiter votre profil', count: '300', contactCount: 300, price: 100, color: '#6366f1' },
+  { id: 't2', label: '1 300', sublabel: 'contacts prêts à visiter votre profil', count: '1 300', contactCount: 1300, price: 200, color: '#8b5cf6' },
+  { id: 't3', label: '15 000', sublabel: 'contacts prêts à visiter votre profil', count: '15k', contactCount: 15000, price: 300, color: '#7c3aed' },
+  { id: 't4', label: '31 000', sublabel: 'contacts prêts à visiter votre profil', count: '31k', contactCount: 31000, price: 1000, color: '#5b21b6' },
+  { id: 't5', label: '10 000', sublabel: 'contacts prêts à visiter votre profil', count: '10k', contactCount: 10000, price: 2100, color: '#4c1d95' },
 ];
 
-function AnalysisModal({ portfolioUrl, onClose, onComplete }) {
+function BoostContactsList({ contacts, details }) {
+  const [page, setPage] = useState(0);
+  const pageSize = 8;
+  const pageCount = Math.ceil(contacts.length / pageSize);
+  const visibleContacts = contacts.slice(page * pageSize, (page + 1) * pageSize);
+
+  return (
+    <div className="mt-3 p-3 rounded-3" style={{ border: '1px solid rgba(38, 33, 92, 0.08)', backgroundColor: '#fff' }}>
+      <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h6 className="mb-1 text-title fw-bold">Contacts de ton boost</h6>
+          <p className="small text-muted mb-0">
+            {details?.count?.toLocaleString('fr-FR') || contacts.length.toLocaleString('fr-FR')} contacts sélectionnés
+            {details?.secteur ? ` pour ${details.secteur}` : ''}
+          </p>
+        </div>
+        {pageCount > 1 && (
+          <div className="d-flex gap-1">
+            <button type="button" className="btn btn-sm btn-outline-custom" onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} aria-label="Contacts précédents"><i className="bi bi-chevron-left"></i></button>
+            <button type="button" className="btn btn-sm btn-outline-custom" onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))} disabled={page === pageCount - 1} aria-label="Contacts suivants"><i className="bi bi-chevron-right"></i></button>
+          </div>
+        )}
+      </div>
+      <div className="row g-2">
+        {visibleContacts.map((contact) => (
+          <div className="col-12 col-md-6" key={`${contact.whatsappPhone}-${contact.email}`}>
+            <div className="d-flex align-items-center justify-content-between gap-2 p-2 rounded-2" style={{ backgroundColor: '#FAFAFE' }}>
+              <div className="min-width-0">
+                <div className="fw-semibold text-title text-truncate">{contact.name}</div>
+                <div className="small text-muted text-truncate">{contact.email || contact.phone}</div>
+              </div>
+              <a className="btn btn-sm btn-success flex-shrink-0" href={`https://wa.me/${contact.whatsappPhone}`} target="_blank" rel="noreferrer" aria-label={`Écrire à ${contact.name} sur WhatsApp`}><i className="bi bi-whatsapp me-1"></i>WhatsApp</a>
+            </div>
+          </div>
+        ))}
+      </div>
+      {pageCount > 1 && <div className="small text-muted text-center mt-2">Page {page + 1} / {pageCount}</div>}
+    </div>
+  );
+}
+
+function AnalysisModal({ portfolioUrl, profileData, onClose, onPurchase }) {
   const [step, setStep] = useState(1); // 1 = secteur, 2 = audience
   const [selectedSecteur, setSelectedSecteur] = useState(null);
   const [selectedTier, setSelectedTier] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSecteurNext = () => {
     if (!selectedSecteur) return;
     setStep(2);
   };
 
-  const handleTierNext = () => {
+  const handleTierNext = async () => {
     if (!selectedTier) return;
-    onComplete();
+    setSubmitting(true);
+    setError('');
+    try {
+      await onPurchase({ secteur: selectedSecteur, tier: selectedTier });
+    } catch (purchaseError) {
+      setError(purchaseError.message || 'Impossible de souscrire ce forfait.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -1840,6 +1960,8 @@ function AnalysisModal({ portfolioUrl, onClose, onComplete }) {
                 Nous avons ces contacts prêts à visiter votre profil. Choisissez votre volume.
               </p>
 
+              {error && <div className="alert alert-danger py-2 px-3 small">{error}</div>}
+
               <div className="d-flex flex-column gap-3">
                 {TIERS.map((tier) => {
                   const isSelected = selectedTier?.id === tier.id;
@@ -1877,13 +1999,17 @@ function AnalysisModal({ portfolioUrl, onClose, onComplete }) {
                       >
                         {tier.count}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: '1rem', color: isSelected ? tier.color : 'var(--folio-title)' }}>
                           {tier.label} personnes
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
                           {tier.sublabel}
                         </div>
+                      </div>
+                      <div className="text-end" style={{ minWidth: '90px' }}>
+                        <strong style={{ color: tier.color }}>{tier.price.toLocaleString('fr-FR')} F CFA</strong>
+                        <div className="small text-muted">Solde : {Number(profileData?.solde || 0).toLocaleString('fr-FR')} F</div>
                       </div>
                       <div
                         style={{
@@ -1905,11 +2031,11 @@ function AnalysisModal({ portfolioUrl, onClose, onComplete }) {
               <button
                 className="btn btn-primary-custom w-100 mt-4 py-2"
                 onClick={handleTierNext}
-                disabled={!selectedTier}
+                disabled={!selectedTier || submitting}
                 style={{ fontSize: '1rem' }}
               >
-                <i className="bi bi-rocket-takeoff me-2"></i>
-                Lancer le boost !
+                {submitting ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-wallet2 me-2"></i>}
+                {submitting ? 'Souscription...' : 'Souscrire le forfait'}
               </button>
             </div>
           )}

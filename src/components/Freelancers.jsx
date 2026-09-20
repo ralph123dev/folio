@@ -7,6 +7,7 @@ const DEFAULT_PROFESSIONS = [
   'Tous les métiers',
   'Développeur Web',
   'Développeur Mobile',
+  'Développeur de jeux vidéo',
   'Designer UI/UX',
   'Community Manager',
   'Rédacteur Web',

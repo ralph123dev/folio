@@ -231,6 +231,7 @@ function App() {
           user={user} 
           onStart={() => { setAuthMode('signup'); setShowAuth(true); setShowFreelancers(false); }} 
         />
+        <Footer />
       </div>
     );
   }

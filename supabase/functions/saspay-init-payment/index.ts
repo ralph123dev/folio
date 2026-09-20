@@ -78,6 +78,11 @@ serve(async (req) => {
   } catch (error) {
     const status = error instanceof SasPayError ? error.status : 500;
     const message = error instanceof Error ? error.message : "Erreur inconnue.";
-    return jsonResponse({ error: { message } }, status);
+    console.error("Erreur saspay-init-payment:", {
+      status,
+      message,
+      details: error instanceof SasPayError ? error.details : undefined,
+    });
+    return jsonResponse({ error: { message, status } }, status);
   }
 });

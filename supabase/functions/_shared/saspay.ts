@@ -73,6 +73,8 @@ const getErrorMessage = (data: any, status: number) => {
   return `Erreur SasPay (${status})`;
 };
 
+const isGatewayFailure = (status: number) => [502, 503, 504].includes(status);
+
 const request = async <T>(path: string, init: RequestInit = {}, requiresAuth = true): Promise<T> => {
   const { apiKey, apiUrl } = getConfig();
   const headers = new Headers(init.headers);
@@ -83,13 +85,28 @@ const request = async <T>(path: string, init: RequestInit = {}, requiresAuth = t
     headers.set("Authorization", `Bearer ${apiKey}`);
   }
 
-  const response = await fetch(`${apiUrl}${path}`, { ...init, headers });
-  const data = await parseResponse(response);
-  if (!response.ok) {
-    const message = getErrorMessage(data, response.status);
-    throw new SasPayError(message, response.status, data);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  try {
+    const response = await fetch(`${apiUrl}${path}`, { ...init, headers, signal: controller.signal });
+    const data = await parseResponse(response);
+    if (!response.ok) {
+      const message = isGatewayFailure(response.status)
+        ? "SasPay est temporairement indisponible (passerelle). Réessaie dans quelques instants ou choisis un autre réseau."
+        : getErrorMessage(data, response.status);
+      throw new SasPayError(message, response.status, data);
+    }
+    return data as T;
+  } catch (error) {
+    if (error instanceof SasPayError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new SasPayError("SasPay n'a pas répondu dans le délai prévu. Réessaie dans quelques instants.", 504);
+    }
+    throw new SasPayError("Impossible de joindre SasPay pour le moment. Vérifie ta connexion puis réessaie.", 502, error);
+  } finally {
+    clearTimeout(timeout);
   }
-  return data as T;
 };
 
 export const getNetworks = () => request<unknown>("/countries/", {}, false);
