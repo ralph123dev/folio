@@ -1,15 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyPayment, SasPayError } from "../_shared/saspay.ts";
+import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+const jsonResponse = (req: Request, body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
+  headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
 });
 
 const findValue = (value: any, keys: string[]): string | null => {
@@ -25,8 +20,8 @@ const findValue = (value: any, keys: string[]): string | null => {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Méthode non autorisée" }, 405);
+  if (req.method === "OPTIONS") return handlePreflight(req);
+  if (req.method !== "POST") return jsonResponse(req, { error: "Méthode non autorisée" }, 405);
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -70,10 +65,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      return jsonResponse({ message: "Synchronisation globale effectuée", processedCount: results.length, results });
+      return jsonResponse(req, { message: "Synchronisation globale effectuée", processedCount: results.length, results });
     }
 
-    if (!paymentId || !userId) return jsonResponse({ error: "Identifiant de paiement absent." }, 400);
+    if (!paymentId || !userId) return jsonResponse(req, { error: "Identifiant de paiement absent." }, 400);
 
     const { data: transaction, error: transactionError } = await supabase
       .from("payment_transactions")
@@ -83,9 +78,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (transactionError) throw transactionError;
-    if (!transaction) return jsonResponse({ error: "Paiement introuvable." }, 404);
+    if (!transaction) return jsonResponse(req, { error: "Paiement introuvable." }, 404);
     if (transaction.status === "completed") {
-      return jsonResponse({ status: "SUCCESS", payment: { id: paymentId, status: "SUCCESS" } });
+      return jsonResponse(req, { status: "SUCCESS", payment: { id: paymentId, status: "SUCCESS" } });
     }
 
     const data = await verifyPayment(paymentId);
@@ -103,11 +98,11 @@ Deno.serve(async (req) => {
       if (error) throw error;
     }
 
-    return jsonResponse({ status: providerStatus, payment: data });
+    return jsonResponse(req, { status: providerStatus, payment: data });
   } catch (error) {
     const status = error instanceof SasPayError ? error.status : 500;
     const message = error instanceof Error ? error.message : "Erreur inconnue.";
-    return jsonResponse({ error: message }, status);
+    return jsonResponse(req, { error: message }, status);
   }
 });
 

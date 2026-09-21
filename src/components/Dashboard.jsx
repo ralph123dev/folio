@@ -615,7 +615,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                 )}
               </div>
               {boostContacts.length > 0 && (
-                <BoostContactsList contacts={boostContacts} details={boostDetails} />
+                <BoostContactsList contacts={boostContacts} details={boostDetails} userId={userData.id} />
               )}
             </div>
           </div>
@@ -1926,42 +1926,144 @@ const TIERS = [
   { id: 't5', label: '10 000', sublabel: 'contacts prêts à visiter votre profil', count: '10k', contactCount: 10000, price: 2100, color: '#4c1d95' },
 ];
 
-function BoostContactsList({ contacts, details }) {
+const getBoostContactKey = (contact) => {
+  if (contact.whatsappPhone) return `whatsapp:${contact.whatsappPhone}`;
+  return `email:${contact.email.trim().toLowerCase()}`;
+};
+
+function BoostContactsList({ contacts, details, userId }) {
   const [page, setPage] = useState(0);
+  const [contactFilter, setContactFilter] = useState('all');
+  const [usedContactKeys, setUsedContactKeys] = useState(() => new Set());
+  const [usageError, setUsageError] = useState('');
   const pageSize = 8;
-  const pageCount = Math.ceil(contacts.length / pageSize);
-  const visibleContacts = contacts.slice(page * pageSize, (page + 1) * pageSize);
+  const filteredContacts = useMemo(() => contacts.filter((contact) => {
+    if (contactFilter === 'email') return Boolean(contact.email);
+    if (contactFilter === 'whatsapp') return Boolean(contact.whatsappPhone);
+    return true;
+  }), [contactFilter, contacts]);
+  const pageCount = Math.max(1, Math.ceil(filteredContacts.length / pageSize));
+  const visibleContacts = filteredContacts.slice(page * pageSize, (page + 1) * pageSize);
+  const usedContactCount = contacts.filter((contact) => usedContactKeys.has(getBoostContactKey(contact))).length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchUsedContacts = async () => {
+      const { data, error } = await supabase
+        .from('boost_contact_interactions')
+        .select('contact_key')
+        .eq('user_id', userId);
+
+      if (cancelled) return;
+      if (error) {
+        console.error('Erreur lors du chargement des contacts utilisés:', error);
+        return;
+      }
+
+      setUsedContactKeys((currentKeys) => new Set([
+        ...currentKeys,
+        ...(data || []).map((interaction) => interaction.contact_key),
+      ]));
+    };
+
+    fetchUsedContacts();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const handleFilterChange = (event) => {
+    setContactFilter(event.target.value);
+    setPage(0);
+  };
+
+  const markContactAsUsed = async (contact) => {
+    const contactKey = getBoostContactKey(contact);
+    const wasAlreadyUsed = usedContactKeys.has(contactKey);
+
+    if (wasAlreadyUsed) return;
+
+    setUsageError('');
+    setUsedContactKeys((currentKeys) => new Set(currentKeys).add(contactKey));
+
+    const { error } = await supabase
+      .from('boost_contact_interactions')
+      .upsert(
+        { user_id: userId, contact_key: contactKey, used_at: new Date().toISOString() },
+        { onConflict: 'user_id,contact_key' },
+      );
+
+    if (error) {
+      console.error('Erreur lors de l’enregistrement du contact utilisé:', error);
+      setUsedContactKeys((currentKeys) => {
+        const nextKeys = new Set(currentKeys);
+        nextKeys.delete(contactKey);
+        return nextKeys;
+      });
+      setUsageError('Le statut de ce contact n’a pas pu être enregistré. Réessaie avant de quitter la page.');
+    }
+  };
 
   return (
     <div className="mt-3 p-3 rounded-3" style={{ border: '1px solid rgba(38, 33, 92, 0.08)', backgroundColor: '#fff' }}>
-      <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+      <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
         <div>
           <h6 className="mb-1 text-title fw-bold">Contacts de ton boost</h6>
           <p className="small text-muted mb-0">
             {details?.count?.toLocaleString('fr-FR') || contacts.length.toLocaleString('fr-FR')} contacts sélectionnés
             {details?.secteur ? ` pour ${details.secteur}` : ''}
+            {usedContactCount > 0 ? ` · ${usedContactCount} déjà utilisé${usedContactCount > 1 ? 's' : ''}` : ''}
           </p>
         </div>
-        {pageCount > 1 && (
-          <div className="d-flex gap-1">
-            <button type="button" className="btn btn-sm btn-outline-custom" onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} aria-label="Contacts précédents"><i className="bi bi-chevron-left"></i></button>
-            <button type="button" className="btn btn-sm btn-outline-custom" onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))} disabled={page === pageCount - 1} aria-label="Contacts suivants"><i className="bi bi-chevron-right"></i></button>
+        <div className="d-flex flex-wrap align-items-end gap-2">
+          <div>
+            <label htmlFor="boost-contact-filter" className="form-label small text-muted mb-1">Afficher</label>
+            <select id="boost-contact-filter" className="form-select form-select-sm" value={contactFilter} onChange={handleFilterChange}>
+              <option value="all">Tous les contacts</option>
+              <option value="email">E-mails uniquement</option>
+              <option value="whatsapp">Numéros WhatsApp uniquement</option>
+            </select>
           </div>
-        )}
-      </div>
-      <div className="row g-2">
-        {visibleContacts.map((contact) => (
-          <div className="col-12 col-md-6" key={`${contact.whatsappPhone}-${contact.email}`}>
-            <div className="d-flex align-items-center justify-content-between gap-2 p-2 rounded-2" style={{ backgroundColor: '#FAFAFE' }}>
-              <div className="min-width-0">
-                <div className="fw-semibold text-title text-truncate">{contact.name}</div>
-                <div className="small text-muted text-truncate">{contact.email || contact.phone}</div>
-              </div>
-              <a className="btn btn-sm btn-success flex-shrink-0" href={`https://wa.me/${contact.whatsappPhone}`} target="_blank" rel="noreferrer" aria-label={`Écrire à ${contact.name} sur WhatsApp`}><i className="bi bi-whatsapp me-1"></i>WhatsApp</a>
+          {pageCount > 1 && (
+            <div className="d-flex gap-1">
+              <button type="button" className="btn btn-sm btn-outline-custom" onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} aria-label="Contacts précédents"><i className="bi bi-chevron-left"></i></button>
+              <button type="button" className="btn btn-sm btn-outline-custom" onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))} disabled={page === pageCount - 1} aria-label="Contacts suivants"><i className="bi bi-chevron-right"></i></button>
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
+      {usageError && <div className="alert alert-danger py-2 small mb-3" role="alert">{usageError}</div>}
+      <div className="row g-2">
+        {visibleContacts.map((contact) => {
+          const contactKey = getBoostContactKey(contact);
+          const isUsed = usedContactKeys.has(contactKey);
+
+          return (
+            <div className="col-12 col-md-6" key={`${contact.whatsappPhone}-${contact.email}`}>
+              <div className="d-flex align-items-center justify-content-between gap-2 p-2 rounded-2" style={{ backgroundColor: '#FAFAFE' }}>
+                <div className="min-width-0">
+                  <div className="fw-semibold text-title text-truncate">{contact.name}</div>
+                  {contactFilter !== 'whatsapp' && contact.email && <div className="small text-muted text-truncate"><i className="bi bi-envelope me-1"></i>{contact.email}</div>}
+                  {contactFilter !== 'email' && contact.phone && <div className="small text-muted text-truncate"><i className="bi bi-whatsapp me-1 text-success"></i>{contact.phone}</div>}
+                </div>
+                {contact.whatsappPhone ? (
+                  <a
+                    className={`btn btn-sm ${isUsed ? 'btn-danger' : 'btn-success'} flex-shrink-0`}
+                    href={`https://wa.me/${contact.whatsappPhone}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => { markContactAsUsed(contact); }}
+                    aria-label={`${isUsed ? 'Contact déjà utilisé : ' : 'Écrire à '}${contact.name} sur WhatsApp`}
+                    title={isUsed ? 'Contact déjà utilisé' : 'Écrire sur WhatsApp'}
+                  >
+                    <i className="bi bi-whatsapp me-1"></i>{isUsed ? 'Utilisé' : 'WhatsApp'}
+                  </a>
+                ) : <span className="badge text-bg-light border">E-mail</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {filteredContacts.length === 0 && <p className="small text-muted text-center py-3 mb-0">Aucun contact ne correspond à ce filtre.</p>}
       {pageCount > 1 && <div className="small text-muted text-center mt-2">Page {page + 1} / {pageCount}</div>}
     </div>
   );

@@ -1,16 +1,11 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createSoftPayPayment, SasPayError, type CreatePaymentPayload } from "../_shared/saspay.ts";
+import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+const jsonResponse = (req: Request, body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
+  headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
 });
 
 const findValue = (value: any, keys: string[]): string | null => {
@@ -26,8 +21,8 @@ const findValue = (value: any, keys: string[]): string | null => {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Méthode non autorisée" }, 405);
+  if (req.method === "OPTIONS") return handlePreflight(req);
+  if (req.method !== "POST") return jsonResponse(req, { error: "Méthode non autorisée" }, 405);
 
   try {
     const body = await req.json();
@@ -35,12 +30,12 @@ serve(async (req) => {
     const numericAmount = Number(amount);
 
     if (!userId || !orderId || !Number.isFinite(numericAmount) || numericAmount <= 0) {
-      return jsonResponse({ error: "Les informations du paiement sont invalides." }, 400);
+      return jsonResponse(req, { error: "Les informations du paiement sont invalides." }, 400);
     }
 
     const payload = payment as CreatePaymentPayload;
     if (!payload.currency || !payload.country || !payload.network || !payload.customer?.phone) {
-      return jsonResponse({ error: "Le pays, le réseau et le numéro Mobile Money sont obligatoires." }, 400);
+      return jsonResponse(req, { error: "Le pays, le réseau et le numéro Mobile Money sont obligatoires." }, 400);
     }
 
     const data = await createSoftPayPayment({ ...payload, amount: numericAmount.toFixed(2) });
@@ -68,13 +63,13 @@ serve(async (req) => {
 
       if (transactionError) {
         console.error("Erreur d'enregistrement du paiement:", transactionError);
-        return jsonResponse({ error: "Le paiement a été créé, mais son suivi n'a pas pu être enregistré." }, 500);
+        return jsonResponse(req, { error: "Le paiement a été créé, mais son suivi n'a pas pu être enregistré." }, 500);
       }
     } else {
       console.warn("SasPay a lancé le paiement sans renvoyer de référence:", JSON.stringify(data));
     }
 
-    return jsonResponse({ ...data, payment_reference: paymentReference || null, tracking_pending: !paymentReference });
+    return jsonResponse(req, { ...data, payment_reference: paymentReference || null, tracking_pending: !paymentReference });
   } catch (error) {
     const status = error instanceof SasPayError ? error.status : 500;
     const message = error instanceof Error ? error.message : "Erreur inconnue.";
@@ -83,6 +78,6 @@ serve(async (req) => {
       message,
       details: error instanceof SasPayError ? error.details : undefined,
     });
-    return jsonResponse({ error: { message, status } }, status);
+    return jsonResponse(req, { error: { message, status } }, status);
   }
 });

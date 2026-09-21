@@ -1,12 +1,8 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
-const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+const jsonResponse = (req: Request, body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
+  headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
 });
 
 const stripHtml = (html: string) => html
@@ -38,13 +34,13 @@ const isPublicUrl = (value: string) => {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Méthode non autorisée" }, 405);
+  if (req.method === "OPTIONS") return handlePreflight(req);
+  if (req.method !== "POST") return jsonResponse(req, { error: "Méthode non autorisée" }, 405);
 
   try {
     const { portfolioUrl, name = "", profession = "" } = await req.json();
     if (typeof portfolioUrl !== "string" || !isPublicUrl(portfolioUrl)) {
-      return jsonResponse({ error: "L'URL du portfolio doit être une adresse publique en http ou https." }, 400);
+      return jsonResponse(req, { error: "L'URL du portfolio doit être une adresse publique en http ou https." }, 400);
     }
 
     const controller = new AbortController();
@@ -59,10 +55,10 @@ Deno.serve(async (req) => {
       clearTimeout(timeout);
     }
 
-    if (!response.ok) return jsonResponse({ error: `Le portfolio a répondu avec le statut HTTP ${response.status}.` }, 502);
+    if (!response.ok) return jsonResponse(req, { error: `Le portfolio a répondu avec le statut HTTP ${response.status}.` }, 502);
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
-      return jsonResponse({ error: "Cette adresse ne renvoie pas une page HTML analysable." }, 415);
+      return jsonResponse(req, { error: "Cette adresse ne renvoie pas une page HTML analysable." }, 415);
     }
 
     const html = (await response.text()).slice(0, 2_000_000);
@@ -96,7 +92,7 @@ Deno.serve(async (req) => {
     const score = Math.max(0, Math.min(100, 100 - recommendations.length * 10));
     const headCode = `<title>${escapeAttribute(normalizedTitle)}</title>\n<meta name="description" content="${escapeAttribute(normalizedDescription.slice(0, 160))}" />\n<meta name="robots" content="index, follow" />\n<meta name="viewport" content="width=device-width, initial-scale=1" />\n<link rel="canonical" href="${escapeAttribute(canonicalUrl)}" />`;
 
-    return jsonResponse({
+    return jsonResponse(req, {
       url: portfolioUrl,
       score,
       analyzedAt: new Date().toISOString(),
@@ -109,6 +105,6 @@ Deno.serve(async (req) => {
     const message = error instanceof DOMException && error.name === "AbortError"
       ? "Le portfolio n'a pas répondu dans le délai prévu."
       : "Impossible d'analyser ce portfolio pour le moment.";
-    return jsonResponse({ error: message }, 502);
+    return jsonResponse(req, { error: message }, 502);
   }
 });

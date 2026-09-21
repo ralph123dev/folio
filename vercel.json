@@ -1,0 +1,14 @@
+{
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "https://folio.com" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "authorization, x-client-info, apikey, content-type" },
+        { "key": "Access-Control-Max-Age", "value": "86400" },
+        { "key": "Vary", "value": "Origin" }
+      ]
+    }
+  ]
+}

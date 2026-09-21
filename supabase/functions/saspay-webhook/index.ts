@@ -1,15 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyWebhookSignature, SasPayError } from "../_shared/saspay.ts";
+import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type, x-saspay-signature, x-webhook-signature",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+const jsonResponse = (req: Request, body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
+  headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
 });
 
 const findValue = (value: any, keys: string[]): string | null => {
@@ -25,8 +20,8 @@ const findValue = (value: any, keys: string[]): string | null => {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Méthode non autorisée" }, 405);
+  if (req.method === "OPTIONS") return handlePreflight(req, { allowHeaders: "content-type, x-saspay-signature, x-webhook-signature", allowMethods: "POST, OPTIONS" });
+  if (req.method !== "POST") return jsonResponse(req, { error: "Méthode non autorisée" }, 405);
 
   try {
     const rawBody = await req.text();
@@ -36,7 +31,7 @@ Deno.serve(async (req) => {
       || req.headers.get("x-signature-256")
       || "";
     if (!await verifyWebhookSignature(rawBody, signature)) {
-      return jsonResponse({ error: "Signature invalide" }, 401);
+      return jsonResponse(req, { error: "Signature invalide" }, 401);
     }
 
     const event = JSON.parse(rawBody);
@@ -47,7 +42,7 @@ Deno.serve(async (req) => {
       ? "completed"
       : ["FAILED", "FAILURE", "CANCELLED", "CANCELED", "PAYMENT_FAILED"].includes(providerStatus) ? "failed" : "pending";
 
-    if (!reference) return jsonResponse({ error: "Identifiant de paiement absent" }, 400);
+    if (!reference) return jsonResponse(req, { error: "Identifiant de paiement absent" }, 400);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -60,10 +55,10 @@ Deno.serve(async (req) => {
     });
     if (error) throw error;
 
-    return jsonResponse({ received: true });
+    return jsonResponse(req, { received: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erreur inconnue.";
     const status = error instanceof SasPayError ? error.status : 500;
-    return jsonResponse({ error: message }, status);
+    return jsonResponse(req, { error: message }, status);
   }
 });
