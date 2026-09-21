@@ -159,6 +159,82 @@ html {
   overflow: hidden;
 }
 
+.partner-section {
+  padding: 5rem 0;
+  margin-top: 5rem;
+  border-top: 1px solid rgba(83, 74, 183, 0.1);
+  border-bottom: 1px solid rgba(83, 74, 183, 0.1);
+  background: linear-gradient(135deg, #F7F6FF 0%, #FFFFFF 52%, #FFF7ED 100%);
+}
+
+.partner-content {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 3rem;
+  align-items: center;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.partner-copy {
+  max-width: 34rem;
+}
+
+.partner-kicker {
+  margin-bottom: .75rem;
+  color: #D85A0A;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.partner-link {
+  display: inline-flex;
+  gap: .5rem;
+  align-items: center;
+  margin-top: 1.5rem;
+  color: #D85A0A;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.partner-link:hover {
+  color: #A94305;
+}
+
+.partner-image-link {
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #0A0A0A;
+  box-shadow: 0 18px 42px rgba(38, 33, 92, .14);
+}
+
+.partner-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform .35s ease;
+}
+
+.partner-image-link:hover .partner-image {
+  transform: scale(1.02);
+}
+
+@media (max-width: 767.98px) {
+  .partner-section {
+    padding: 3.5rem 0;
+    margin-top: 3.5rem;
+  }
+
+  .partner-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
 /* Supported countries */
 .supported-countries {
   overflow: hidden;

@@ -12,6 +12,7 @@ import Dashboard from './components/Dashboard';
 import Freelancers from './components/Freelancers';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { supabase } from './supabaseClient';
+import partenaireImage from './assets/partenaire/partenaire1.jpg';
 
 // Assets
 import logoAnimate from './assets/logo_animate.mp4';
@@ -276,6 +277,23 @@ function App() {
             }
           }}
         />
+        <section className="partner-section reveal" aria-labelledby="partner-title">
+          <div className="partner-content">
+            <div className="partner-copy">
+              <p className="partner-kicker">Partenaire</p>
+              <h2 id="partner-title" className="display-5 font-serif">Des talents qui construisent l'avenir.</h2>
+              <p className="text-body-custom mb-0">
+                Découvre HokAy, une plateforme qui aide les talents à montrer ce qu'ils savent faire, développer leurs compétences et ouvrir de nouvelles opportunités.
+              </p>
+              <a className="partner-link" href="https://hokay.site" target="_blank" rel="noopener noreferrer">
+                Découvrir HokAy <span aria-hidden="true">&#8599;</span>
+              </a>
+            </div>
+            <a className="partner-image-link" href="https://hokay.site" target="_blank" rel="noopener noreferrer" aria-label="Découvrir le partenaire HokAy">
+              <img src={partenaireImage} alt="Présentation de la plateforme HokAy" className="partner-image" />
+            </a>
+          </div>
+        </section>
         <CtaSection onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
       </main>
       <Footer />
