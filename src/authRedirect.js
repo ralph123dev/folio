@@ -1,3 +1,6 @@
-const configuredSiteUrl = import.meta.env.VITE_SITE_URL?.replace(/\/$/, '');
-
-export const getAuthRedirectUrl = () => configuredSiteUrl || window.location.origin;
+export const getAuthRedirectUrl = () => {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return import.meta.env.VITE_SITE_URL?.replace(/\/$/, '') || '';
+};
