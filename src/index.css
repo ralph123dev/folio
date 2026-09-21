@@ -159,6 +159,94 @@ html {
   overflow: hidden;
 }
 
+/* Supported countries */
+.supported-countries {
+  overflow: hidden;
+  border-top: 1px solid rgba(83, 74, 183, 0.1);
+  border-bottom: 1px solid rgba(83, 74, 183, 0.1);
+  background: linear-gradient(135deg, #F8F7FF 0%, #FFFFFF 48%, #F5FBF7 100%);
+}
+
+.supported-countries-kicker {
+  color: var(--folio-secondary-2);
+  font-size: .8rem;
+  letter-spacing: .1em;
+}
+
+.supported-countries-marquee {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.supported-countries-marquee::before,
+.supported-countries-marquee::after {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  width: clamp(2.5rem, 9vw, 10rem);
+  content: '';
+  pointer-events: none;
+}
+
+.supported-countries-marquee::before {
+  left: 0;
+  background: linear-gradient(90deg, #F8F7FF, rgba(248, 247, 255, 0));
+}
+
+.supported-countries-marquee::after {
+  right: 0;
+  background: linear-gradient(270deg, #F5FBF7, rgba(245, 251, 247, 0));
+}
+
+.supported-countries-track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  padding: .75rem 0 1.2rem;
+  animation: supported-countries-scroll 32s linear infinite;
+  will-change: transform;
+}
+
+.supported-country {
+  display: grid;
+  flex: 0 0 132px;
+  gap: .55rem;
+  place-items: center;
+  padding: .9rem .75rem .8rem;
+  border: 1px solid rgba(83, 74, 183, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 22px rgba(38, 33, 92, 0.07);
+  color: var(--folio-title);
+  font-size: .83rem;
+  font-weight: 600;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.supported-country img {
+  display: block;
+  width: 64px;
+  height: 42px;
+  border-radius: 5px;
+  box-shadow: 0 2px 7px rgba(25, 25, 50, 0.16);
+  object-fit: cover;
+}
+
+.supported-country:hover {
+  box-shadow: 0 12px 26px rgba(38, 33, 92, 0.13);
+  transform: translateY(-4px);
+}
+
+.supported-countries-marquee:hover .supported-countries-track {
+  animation-play-state: paused;
+}
+
+@keyframes supported-countries-scroll {
+  to { transform: translateX(calc(-25% - .25rem)); }
+}
+
 .feature-carousel-track {
   display: flex;
   gap: 2rem;
@@ -225,6 +313,7 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .feature-carousel-track { scroll-behavior: auto; }
+  .supported-countries-track { animation: none; }
   .folio-feature-card, .feature-nav-btn { transition: none; }
 }
 

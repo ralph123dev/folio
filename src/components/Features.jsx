@@ -206,7 +206,7 @@ const Features = ({ user, onStart, onDashboard }) => {
           </div>
 
           <div className="row g-4 align-items-stretch">
-            <div className="col-lg-3 reveal reveal-delay-1">
+            <div className="col-lg-4 reveal reveal-delay-1">
               <article className="pricing-card pricing-card-trial h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div className="pricing-icon"><i className="bi bi-stars"></i></div>
@@ -228,22 +228,7 @@ const Features = ({ user, onStart, onDashboard }) => {
               </article>
             </div>
 
-            <div className="col-lg-3 reveal reveal-delay-2">
-              <article className="pricing-card h-100 d-flex flex-column p-4 p-xl-5">
-                <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div className="pricing-icon"><i className="bi bi-people-fill"></i></div>
-                  <span className="badge pricing-badge">Acquisition</span>
-                </div>
-                <h3 className="font-serif h4 mb-3">Trouver des clients</h3>
-                <p className="text-body-custom flex-grow-1 mb-4">
-                  Accède à un réseau de plus de 31 000 contacts qualifiés à prospecter ou à toucher avec tes campagnes publicitaires. Donne à ton business les bonnes opportunités pour décoller.
-                </p>
-                <div className="pricing-price mb-4">12 000 <small>F / mois</small></div>
-                <button type="button" className="btn btn-outline-custom w-100">Choisir cette offre</button>
-              </article>
-            </div>
-
-            <div className="col-lg-3 reveal reveal-delay-3">
+            <div className="col-lg-4 reveal reveal-delay-2">
               <article className="pricing-card pricing-card-featured h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div className="pricing-icon"><i className="bi bi-search-heart-fill"></i></div>
@@ -258,17 +243,17 @@ const Features = ({ user, onStart, onDashboard }) => {
               </article>
             </div>
 
-            <div className="col-lg-3 reveal reveal-delay-4">
+            <div className="col-lg-4 reveal reveal-delay-3">
               <article className="pricing-card h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div className="pricing-icon"><i className="bi bi-share-fill"></i></div>
-                  <span className="badge pricing-badge">Réseaux</span>
+                  <div className="pricing-icon"><i className="bi bi-people-fill"></i></div>
+                  <span className="badge pricing-badge">Acquisition</span>
                 </div>
-                <h3 className="font-serif h4 mb-3">Booster tes réseaux</h3>
+                <h3 className="font-serif h4 mb-3">Trouver des clients</h3>
                 <p className="text-body-custom flex-grow-1 mb-4">
-                  Développe une audience utile, sans abonnés fantômes. Reçois des stratégies concrètes, des idées de contenu et les hashtags adaptés pour attirer les bonnes personnes.
+                  Accède à un réseau de plus de 31 000 contacts qualifiés à prospecter ou à toucher avec tes campagnes publicitaires. Donne à ton business les bonnes opportunités pour décoller.
                 </p>
-                <div className="pricing-price mb-4">Dès 1 000 <small>F / mois</small></div>
+                <div className="pricing-price mb-4">12 000 <small>F / mois</small></div>
                 <button type="button" className="btn btn-outline-custom w-100">Choisir cette offre</button>
               </article>
             </div>

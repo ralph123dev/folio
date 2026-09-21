@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import HowItWorks from './components/HowItWorks';
+import SupportedCountries from './components/SupportedCountries';
 import Features from './components/Features';
 import CtaSection from './components/CtaSection';
 import Footer from './components/Footer';
@@ -263,6 +264,7 @@ function App() {
       <main className="flex-grow-1">
         <Hero onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
         <HowItWorks />
+        <SupportedCountries />
         <Features
           user={user}
           onStart={() => { setAuthMode('signup'); setShowAuth(true); }}
