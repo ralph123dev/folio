@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { getAuthRedirectUrl } from '../authRedirect';
 import googleLogo from '../assets/google.jpg';
 import './auth.css';
 
@@ -13,7 +14,7 @@ export default function SignUp({ onLogin }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: getAuthRedirectUrl(),
         queryParams: { prompt: 'select_account' },
       },
     });
