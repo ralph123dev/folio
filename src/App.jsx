@@ -34,9 +34,23 @@ function App() {
 
   // Vérifier la session au chargement (après OAuth redirect)
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+    let active = true;
+    let handledSessionId = null;
+
+    const handleSession = async (session) => {
+      if (!active) return;
+      if (!session?.user) {
+        setCheckingSession(false);
+        return;
+      }
+
+      if (handledSessionId === session.user.id) {
+        setCheckingSession(false);
+        return;
+      }
+      handledSessionId = session.user.id;
+
+      try {
         const currentUser = session.user;
         setUser(currentUser);
 
@@ -76,51 +90,45 @@ function App() {
           setShowAuth(false);
           setIntroFinished(true);
         }
+      } catch (error) {
+        console.error('Erreur lors du chargement de la session:', error);
+        if (active) {
+          setShowAuth(true);
+          setIntroFinished(true);
+        }
+      } finally {
+        if (active) setCheckingSession(false);
       }
-      setCheckingSession(false);
     };
 
-    checkSession();
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => handleSession(session))
+      .catch((error) => {
+        console.error('Impossible de récupérer la session:', error);
+        if (active) {
+          setShowAuth(true);
+          setIntroFinished(true);
+          setCheckingSession(false);
+        }
+      });
 
     // Écouter les changements de session (pour l'OAuth callback)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        const currentUser = session.user;
-        setUser(currentUser);
-
-        const { data: profile } = await supabase
-          .from('profils')
-          .select('*')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-
-        if (profile && profile.onboarding_termine) {
-          setDashboardData({
-            id: currentUser.id,
-            nom_complet: profile.nom_complet || currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '',
-            email: currentUser.email,
-            pays: profile.pays || '',
-            telephone: profile.telephone || '',
-            profession: profile.profession || '',
-            decouvert_via: profile.decouvert_via || '',
-          });
-          setShowDashboard(true);
-        } else {
-          if (!profile) {
-            await supabase.from('profils').insert({
-              id: currentUser.id,
-              nom_complet: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '',
-              email: currentUser.email,
-              onboarding_termine: false
-            });
-          }
-          setShowOnboarding(true);
-        }
-        setShowAuth(false);
+        void handleSession(session);
+      } else if (event === 'SIGNED_OUT' && active) {
+        handledSessionId = null;
+        setUser(null);
+        setDashboardData(null);
+        setShowDashboard(false);
+        setShowOnboarding(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Pendant la vérification de session, on peut afficher un écran vide
