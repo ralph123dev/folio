@@ -25,3 +25,6 @@ dist-ssr
 db.sql
 contacts.txt
 contacts.txt.gz
+
+.vercel
+.env*.local
