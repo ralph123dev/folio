@@ -2,37 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
 import verifieBadge from '../assets/verifie.png';
-import contactsFileA from '../assets/SBC_filtered_contacts_2026-08-23.vcf?raw';
-import contactsFileB from '../assets/SBC_filtered_contacts_2026-08-23 (1).vcf?raw';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
-
-const parseVcfContacts = (...files) => {
-  const contacts = [];
-  const seen = new Set();
-
-  files.join('\n').split(/END:VCARD/i).forEach((card) => {
-    const readField = (field) => {
-      const line = card.split(/\r?\n/).find((item) => new RegExp(`^${field}(?:;|:)`, 'i').test(item));
-      return line ? line.slice(line.indexOf(':') + 1).trim() : '';
-    };
-
-    const name = readField('FN').replace(/\s*SBC\s*$/i, '').trim();
-    const email = readField('EMAIL');
-    const phone = readField('TEL').replace(/[^\d+]/g, '');
-    const whatsappPhone = phone.replace(/\D/g, '');
-    const key = whatsappPhone || email;
-
-    if (key && (name || email || whatsappPhone) && !seen.has(key)) {
-      seen.add(key);
-      contacts.push({ name: name || 'Contact', email, phone, whatsappPhone });
-    }
-  });
-
-  return contacts;
-};
-
-const BOOST_CONTACTS = parseVcfContacts(contactsFileA, contactsFileB);
 
 export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -305,11 +276,10 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     if (error) throw error;
     if (!data?.success) throw new Error(data?.message || 'Impossible de souscrire ce forfait.');
 
-    const selectedContacts = BOOST_CONTACTS.slice(0, Math.min(tier.contactCount, BOOST_CONTACTS.length));
     const details = { secteur: secteur.label, count: tier.contactCount, price: tier.price };
-    setBoostContacts(selectedContacts);
+    setBoostContacts([]);
     setBoostDetails(details);
-    localStorage.setItem(`folio-boost-contacts-${userData.id}`, JSON.stringify(selectedContacts));
+    localStorage.removeItem(`folio-boost-contacts-${userData.id}`);
     localStorage.setItem(`folio-boost-details-${userData.id}`, JSON.stringify(details));
     await fetchProfile();
     setShowAnalysisModal(false);
