@@ -289,9 +289,11 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const fetchBoostContacts = async (details) => {
     if (!details?.secteur || !details?.count) return;
     setBoostContactsError('');
-    const { data, error } = await supabase.rpc('get_contact_boost_contacts', {
-      target_sector: details.secteur,
-      requested_count: details.count,
+    const { data, error } = await supabase.functions.invoke('get-contact-boost-contacts', {
+      body: {
+        sector: details.secteur,
+        count: details.count,
+      },
     });
 
     if (error) {
