@@ -32,6 +32,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       return null;
     }
   });
+  const [boostContactsError, setBoostContactsError] = useState('');
   const [searchStats, setSearchStats] = useState([]);
 
   const isUserVerified = useMemo(() => {
@@ -277,14 +278,39 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     if (!data?.success) throw new Error(data?.message || 'Impossible de souscrire ce forfait.');
 
     const details = { secteur: secteur.label, count: tier.contactCount, price: tier.price };
-    setBoostContacts([]);
+    await fetchBoostContacts(details);
     setBoostDetails(details);
-    localStorage.removeItem(`folio-boost-contacts-${userData.id}`);
     localStorage.setItem(`folio-boost-details-${userData.id}`, JSON.stringify(details));
     await fetchProfile();
     setShowAnalysisModal(false);
     triggerFireworks();
   };
+
+  const fetchBoostContacts = async (details) => {
+    if (!details?.secteur || !details?.count) return;
+    setBoostContactsError('');
+    const { data, error } = await supabase.rpc('get_contact_boost_contacts', {
+      target_sector: details.secteur,
+      requested_count: details.count,
+    });
+
+    if (error) {
+      console.error('Erreur lors du chargement des contacts boost:', error);
+      setBoostContactsError('Les contacts seront disponibles dès que le stock aura été chargé.');
+      return;
+    }
+
+    const contacts = (data || []).map((contact) => ({
+      ...contact,
+      whatsappPhone: contact.whatsappPhone || contact.whatsapp_phone || '',
+    }));
+    setBoostContacts(contacts);
+    localStorage.setItem(`folio-boost-contacts-${userData.id}`, JSON.stringify(contacts));
+  };
+
+  useEffect(() => {
+    if (boostDetails) fetchBoostContacts(boostDetails);
+  }, [boostDetails]);
 
   const fetchSearchStats = async () => {
     const { data, error } = await supabase.rpc('get_search_detection_stats', { target_user_id: userData.id });
@@ -586,6 +612,11 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
               </div>
               {boostContacts.length > 0 && (
                 <BoostContactsList contacts={boostContacts} details={boostDetails} userId={userData.id} />
+              )}
+              {boostDetails && boostContacts.length === 0 && (
+                <div className="alert alert-info mt-3 mb-0" role="status">
+                  {boostContactsError || 'Les contacts de ton forfait seront affichés ici dès qu’ils seront disponibles.'}
+                </div>
               )}
             </div>
           </div>
