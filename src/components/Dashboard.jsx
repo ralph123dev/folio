@@ -302,7 +302,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       return;
     }
 
-    const contacts = (data || []).map((contact) => ({
+    const contacts = (data?.contacts || []).map((contact) => ({
       ...contact,
       whatsappPhone: contact.whatsappPhone || contact.whatsapp_phone || '',
     }));
