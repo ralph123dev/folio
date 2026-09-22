@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import verifieBadge from '../assets/verifie.png';
+import orangeBadge from '../assets/orange.png';
+import { uploadToCloudinary, getCloudinaryDownloadUrl } from '../lib/cloudinary';
 import './auth.css';
 
 const DEFAULT_PROFESSIONS = [
@@ -96,7 +98,11 @@ export default function Freelancers({ user, onStart }) {
       if (data) {
         const vMap = {};
         data.forEach((profile) => {
-          vMap[profile.user_id] = true;
+          vMap[profile.user_id] = {
+            isVerified: profile.is_verified,
+            isProMax: profile.is_promax,
+            badgeColor: profile.badge_color || (profile.is_promax ? 'orange' : 'blue'),
+          };
         });
         setVerifiedUsers(vMap);
       }
@@ -221,6 +227,16 @@ export default function Freelancers({ user, onStart }) {
         return { ...freelancer, avgRating: avg, ratingCount: count };
       })
       .sort((a, b) => {
+        const vInfoA = verifiedUsers[a.user_id];
+        const vInfoB = verifiedUsers[b.user_id];
+        const isProMaxA = Boolean(vInfoA?.isProMax);
+        const isProMaxB = Boolean(vInfoB?.isProMax);
+
+        // Tri prioritaire des abonnés ProMax en premier
+        if (isProMaxA !== isProMaxB) {
+          return isProMaxB ? 1 : -1;
+        }
+
         // Tri décroissant par moyenne des étoiles obtenues
         if (b.avgRating !== a.avgRating) {
           return b.avgRating - a.avgRating;
@@ -344,7 +360,11 @@ export default function Freelancers({ user, onStart }) {
           ) : (
             <div className="row g-4">
               {filteredAndSortedFreelancers.map((freelancer) => {
-                const isUserVerified = Boolean(verifiedUsers[freelancer.user_id]);
+                const verifiedInfo = verifiedUsers[freelancer.user_id];
+                const isUserVerified = Boolean(verifiedInfo?.isVerified || verifiedInfo?.isProMax || verifiedUsers[freelancer.user_id]);
+                const isProMax = Boolean(verifiedInfo?.isProMax);
+                const badgeColorClass = (isProMax || verifiedInfo?.badgeColor === 'orange') ? 'badge-orange-img' : '';
+
                 const whatsappClean = freelancer.whatsapp ? freelancer.whatsapp.replace(/\D/g, '') : '';
                 const whatsappUrl = whatsappClean ? `https://wa.me/${whatsappClean}` : null;
                 const telegramClean = freelancer.telegram ? freelancer.telegram.replace(/^@/, '').trim() : '';
@@ -353,16 +373,29 @@ export default function Freelancers({ user, onStart }) {
                 const instagramClean = freelancer.instagram ? freelancer.instagram.replace(/^@/, '').trim() : '';
                 const instagramUrl = instagramClean ? (instagramClean.startsWith('http') ? instagramClean : `https://instagram.com/${instagramClean}`) : null;
                 const portfolioUrl = freelancer.site_web ? (freelancer.site_web.startsWith('http') ? freelancer.site_web : `https://${freelancer.site_web}`) : null;
+                const cvUrl = freelancer.cv_url ? (freelancer.cv_url.startsWith('http') ? freelancer.cv_url : `https://${freelancer.cv_url}`) : null;
+
+                const cardBadgeImg = (isProMax || verifiedInfo?.badgeColor === 'orange') ? orangeBadge : verifieBadge;
 
                 return (
                 <div className="col-md-4" key={freelancer.id}>
-                  <article className="h-100 p-4 border rounded-4 d-flex flex-column align-items-center text-center bg-white shadow-sm hover-shadow transition-all position-relative">
-                    {freelancer.photo_url ? (
+                  <article className={`h-100 p-4 border rounded-4 d-flex flex-column align-items-center text-center bg-white shadow-sm hover-shadow transition-all position-relative ${isProMax ? 'promax-card-highlight' : ''}`}>
+                    {freelancer.video_url ? (
+                      <video
+                        src={freelancer.video_url}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="rounded-circle mb-3 shadow-sm"
+                        style={{ width: '90px', height: '90px', objectFit: 'cover', border: isProMax ? '3px solid #FF7A00' : '3px solid #EEEDFE' }}
+                      />
+                    ) : freelancer.photo_url ? (
                       <img
                         src={freelancer.photo_url}
                         alt={freelancer.nom_freelancer}
                         className="rounded-circle mb-3 shadow-sm"
-                        style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #EEEDFE' }}
+                        style={{ width: '90px', height: '90px', objectFit: 'cover', border: isProMax ? '3px solid #FF7A00' : '3px solid #EEEDFE' }}
                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
                       />
                     ) : (
@@ -378,7 +411,7 @@ export default function Freelancers({ user, onStart }) {
                       <h3 className="font-serif h5 mb-0 text-title">{freelancer.nom_freelancer}</h3>
                       {isUserVerified && (
                         <img 
-                          src={verifieBadge} 
+                          src={cardBadgeImg} 
                           alt="Badge vérifié" 
                           title="les profils verifier son ceux que nous avons verifier personellement" 
                           style={{ width: '20px', height: '20px', objectFit: 'contain', cursor: 'pointer' }}
@@ -391,7 +424,7 @@ export default function Freelancers({ user, onStart }) {
                       {truncateWords(freelancer.description, 20)}
                     </p>
 
-                    {/* Boutons de contact direct */}
+                    {/* Boutons de contact direct et CV */}
                     <div className="d-flex flex-wrap justify-content-center gap-2 mb-3 w-100">
                       {whatsappUrl && (
                         <a 
@@ -403,6 +436,34 @@ export default function Freelancers({ user, onStart }) {
                         >
                           <i className="bi bi-whatsapp"></i> WhatsApp
                         </a>
+                      )}
+                      {cvUrl && (
+                        <button 
+                          type="button"
+                          className="btn btn-sm rounded-pill px-3 py-1 d-flex align-items-center gap-1 text-white"
+                          style={{ fontSize: '0.8rem', backgroundColor: '#FF7A00', borderColor: '#FF7A00' }}
+                          title="Télécharger le CV"
+                          onClick={async () => {
+                            try {
+                              const downloadUrl = getCloudinaryDownloadUrl(cvUrl);
+                              const response = await fetch(downloadUrl);
+                              const blob = await response.blob();
+                              const blobUrl = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = blobUrl;
+                              a.download = `CV_${(freelancer.nom_freelancer || 'freelancer').replace(/\s+/g, '_')}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(blobUrl);
+                            } catch (err) {
+                              console.error('Erreur téléchargement CV:', err);
+                              window.open(cvUrl, '_blank');
+                            }
+                          }}
+                        >
+                          <i className="bi bi-file-earmark-pdf-fill"></i> Télécharger CV
+                        </button>
                       )}
                       {portfolioUrl && (
                         <a 
@@ -518,6 +579,8 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     prenom: defaultPrenom,
     nom_freelancer: '',
     photo_url: '',
+    video_url: '',
+    cv_url: '',
     age: '',
     date_naissance: '',
     whatsapp: '',
@@ -533,6 +596,10 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     annees_experience: ''
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [photoProgress, setPhotoProgress] = useState(0);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [cvProgress, setCvProgress] = useState(0);
   const [error, setError] = useState(null);
 
   const handleChange = (e) => {
@@ -540,18 +607,72 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePhotoFileChange = (e) => {
+  const handlePhotoFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("La photo ne doit pas dépasser 2 Mo.");
+      if (file.size > 10 * 1024 * 1024) {
+        setError("La photo ne doit pas dépasser 10 Mo.");
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photo_url: reader.result }));
-      };
-      reader.readAsDataURL(file);
+      setUploadingMedia(true);
+      setPhotoProgress(1);
+      setError(null);
+      try {
+        const url = await uploadToCloudinary(file, 'image', (percent) => setPhotoProgress(percent));
+        setFormData(prev => ({ ...prev, photo_url: url }));
+      } catch (err) {
+        console.error("Erreur d'envoi photo:", err);
+        setError("Erreur d'envoi de la photo sur Cloudinary : " + (err.message || 'Échec'));
+        setPhotoProgress(0);
+      } finally {
+        setUploadingMedia(false);
+      }
+    }
+  };
+
+  const handleVideoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 100 * 1024 * 1024) {
+        setError("La vidéo ne doit pas dépasser 100 Mo.");
+        return;
+      }
+      setUploadingMedia(true);
+      setVideoProgress(1);
+      setError(null);
+      try {
+        const url = await uploadToCloudinary(file, 'video', (percent) => setVideoProgress(percent));
+        setFormData(prev => ({ ...prev, video_url: url }));
+      } catch (err) {
+        console.error("Erreur d'envoi vidéo:", err);
+        setError("Erreur d'envoi de la vidéo sur Cloudinary : " + (err.message || 'Échec'));
+        setVideoProgress(0);
+      } finally {
+        setUploadingMedia(false);
+      }
+    }
+  };
+
+  const handleCvFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 25 * 1024 * 1024) {
+        setError("Le CV ne doit pas dépasser 25 Mo.");
+        return;
+      }
+      setUploadingMedia(true);
+      setCvProgress(1);
+      setError(null);
+      try {
+        const url = await uploadToCloudinary(file, 'raw', (percent) => setCvProgress(percent));
+        setFormData(prev => ({ ...prev, cv_url: url }));
+      } catch (err) {
+        console.error("Erreur d'envoi CV:", err);
+        setError("Erreur d'envoi du CV sur Cloudinary : " + (err.message || 'Échec'));
+        setCvProgress(0);
+      } finally {
+        setUploadingMedia(false);
+      }
     }
   };
 
@@ -576,6 +697,8 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
         prenom: formData.prenom,
         nom_freelancer: formData.nom_freelancer,
         photo_url: formData.photo_url || null,
+        video_url: formData.video_url || null,
+        cv_url: formData.cv_url || null,
         age: formData.age ? parseInt(formData.age) : null,
         date_naissance: formData.date_naissance || null,
         whatsapp: formData.whatsapp || null,
@@ -618,10 +741,12 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
           <div className="modal-body py-4 px-4" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
             <form onSubmit={handleSubmit}>
               <div className="row g-3">
-                {/* Aperçu / Photo de profil */}
+                {/* Aperçu / Photo et Vidéo de profil & CV */}
                 <div className="col-12 text-center mb-2">
                   <div className="d-inline-block position-relative">
-                    {formData.photo_url ? (
+                    {formData.video_url ? (
+                      <video src={formData.video_url} autoPlay loop muted playsInline className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #FF7A00' }} />
+                    ) : formData.photo_url ? (
                       <img src={formData.photo_url} alt="Aperçu" className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid var(--folio-primary)' }} />
                     ) : (
                       <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mx-auto" style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}>
@@ -629,15 +754,45 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
                       </div>
                     )}
                   </div>
-                  <div className="mt-2">
-                    <label className="btn btn-sm btn-outline-custom me-2">
-                      <i className="bi bi-upload me-1"></i>Choisir une photo
-                      <input type="file" accept="image/*" className="d-none" onChange={handlePhotoFileChange} disabled={loading} />
+                  {videoProgress > 0 && videoProgress < 100 && (
+                    <div className="w-100 my-2">
+                      <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                        <span>Téléversement vidéo sur Cloudinary...</span>
+                        <span>{videoProgress}%</span>
+                      </div>
+                      <div className="progress" style={{ height: '8px' }}>
+                        <div className="progress-bar progress-bar-striped progress-bar-animated bg-warning" style={{ width: `${videoProgress}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {cvProgress > 0 && cvProgress < 100 && (
+                    <div className="w-100 my-2">
+                      <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                        <span>Téléversement CV sur Cloudinary...</span>
+                        <span>{cvProgress}%</span>
+                      </div>
+                      <div className="progress" style={{ height: '8px' }}>
+                        <div className="progress-bar progress-bar-striped progress-bar-animated bg-success" style={{ width: `${cvProgress}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-2 d-flex flex-wrap justify-content-center gap-2">
+                    <label className="btn btn-sm btn-outline-custom">
+                      <i className="bi bi-image me-1"></i>Photo de profil
+                      <input type="file" accept="image/*" className="d-none" onChange={handlePhotoFileChange} disabled={loading || uploadingMedia} />
+                    </label>
+                    <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
+                      <i className="bi bi-camera-reels me-1"></i>Vidéo de profil (ProMax)
+                      <input type="file" accept="video/*" className="d-none" onChange={handleVideoFileChange} disabled={loading || uploadingMedia} />
+                    </label>
+                    <label className="btn btn-sm btn-outline-success">
+                      <i className="bi bi-file-earmark-pdf me-1"></i>Ajouter son CV (ProMax)
+                      <input type="file" accept=".pdf,.doc,.docx" className="d-none" onChange={handleCvFileChange} disabled={loading || uploadingMedia} />
                     </label>
                   </div>
-                  <div className="mt-1">
-                    <input type="url" name="photo_url" className="form-control form-control-sm text-center mx-auto" style={{ maxWidth: '380px' }} placeholder="ou coller l'URL de la photo (https://...)" value={formData.photo_url} onChange={handleChange} disabled={loading} />
-                  </div>
+                  {formData.cv_url && <small className="text-success d-block mt-1"><i className="bi bi-check-circle me-1"></i>CV joint avec succès (Stocké sur Cloudinary)</small>}
                 </div>
 
                 <div className="col-md-6">
@@ -708,9 +863,9 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
                 </div>
               )}
 
-              <button type="submit" className="btn btn-primary-custom w-100 py-2 mt-4" disabled={loading}>
+              <button type="submit" className="btn btn-primary-custom w-100 py-2 mt-4" disabled={loading || uploadingMedia || (videoProgress > 0 && videoProgress < 100) || (cvProgress > 0 && cvProgress < 100)}>
                 {loading ? <span className="spinner-border spinner-border-sm me-2" role="status"></span> : <i className="bi bi-upload me-2"></i>}
-                Publier le profil
+                {uploadingMedia ? 'Téléversement des fichiers...' : 'Publier le profil'}
               </button>
             </form>
           </div>

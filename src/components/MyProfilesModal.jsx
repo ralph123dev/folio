@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { uploadToCloudinary } from '../lib/cloudinary';
 
 const emptyForm = {
   nom: '',
   prenom: '',
   nom_freelancer: '',
   photo_url: '',
+  video_url: '',
+  cv_url: '',
   age: '',
   date_naissance: '',
   whatsapp: '',
@@ -63,6 +66,8 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
       prenom: profile.prenom || '',
       nom_freelancer: profile.nom_freelancer || '',
       photo_url: profile.photo_url || '',
+      video_url: profile.video_url || '',
+      cv_url: profile.cv_url || '',
       age: profile.age || '',
       date_naissance: profile.date_naissance || '',
       whatsapp: profile.whatsapp || '',
@@ -93,18 +98,67 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
     setFormData((previous) => ({ ...previous, [name]: value }));
   };
 
-  const handlePhotoFileChange = (e) => {
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [cvProgress, setCvProgress] = useState(0);
+
+  const handlePhotoFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("La photo ne doit pas dépasser 2 Mo.");
+      if (file.size > 5 * 1024 * 1024) {
+        setError("La photo ne doit pas dépasser 5 Mo.");
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photo_url: reader.result }));
-      };
-      reader.readAsDataURL(file);
+      setSaving(true);
+      try {
+        const url = await uploadToCloudinary(file, 'image');
+        setFormData(prev => ({ ...prev, photo_url: url }));
+      } catch (err) {
+        setError("Erreur d'envoi de la photo : " + (err.message || ''));
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  const handleVideoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        setError("La vidéo ne doit pas dépasser 20 Mo.");
+        return;
+      }
+      setSaving(true);
+      setVideoProgress(1);
+      try {
+        const url = await uploadToCloudinary(file, 'video', (percent) => setVideoProgress(percent));
+        setFormData(prev => ({ ...prev, video_url: url }));
+      } catch (err) {
+        setError("Erreur d'envoi de la vidéo : " + (err.message || ''));
+        setVideoProgress(0);
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  const handleCvFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Le CV ne doit pas dépasser 10 Mo.");
+        return;
+      }
+      setSaving(true);
+      setCvProgress(1);
+      try {
+        const url = await uploadToCloudinary(file, 'raw', (percent) => setCvProgress(percent));
+        setFormData(prev => ({ ...prev, cv_url: url }));
+      } catch (err) {
+        setError("Erreur d'envoi du CV : " + (err.message || ''));
+        setCvProgress(0);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -128,6 +182,8 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
       prenom: formData.prenom.trim(),
       nom_freelancer: formData.nom_freelancer.trim(),
       photo_url: formData.photo_url.trim() || null,
+      video_url: formData.video_url.trim() || null,
+      cv_url: formData.cv_url.trim() || null,
       age: formData.age ? Number(formData.age) : null,
       date_naissance: formData.date_naissance || null,
       whatsapp: formData.whatsapp.trim() || null,
@@ -198,9 +254,13 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
             <ProfileForm
               formData={formData}
               saving={saving}
+              videoProgress={videoProgress}
+              cvProgress={cvProgress}
               isEditing={Boolean(editingProfile)}
               onChange={handleChange}
               onPhotoFileChange={handlePhotoFileChange}
+              onVideoFileChange={handleVideoFileChange}
+              onCvFileChange={handleCvFileChange}
               onSubmit={handleSubmit}
               onCancel={editingProfile || profiles.length ? cancelForm : onClose}
             />
@@ -249,26 +309,63 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
   );
 }
 
-function ProfileForm({ formData, saving, isEditing, onChange, onPhotoFileChange, onSubmit, onCancel }) {
+function ProfileForm({ formData, saving, videoProgress, cvProgress, isEditing, onChange, onPhotoFileChange, onVideoFileChange, onCvFileChange, onSubmit, onCancel }) {
+  const isUploadingMedia = (videoProgress > 0 && videoProgress < 100) || (cvProgress > 0 && cvProgress < 100);
+
   return (
     <form onSubmit={onSubmit}>
       <div className="row g-3">
-        {/* Photo de profil */}
+        {/* Photo et Vidéo de profil & CV */}
         <div className="col-12 text-center mb-2">
-          {formData.photo_url ? (
+          {formData.video_url ? (
+            <video src={formData.video_url} autoPlay loop muted playsInline className="rounded-circle shadow-sm mb-2" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '2px solid #FF7A00' }} />
+          ) : formData.photo_url ? (
             <img src={formData.photo_url} alt="Aperçu" className="rounded-circle shadow-sm mb-2" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '2px solid var(--folio-primary)' }} />
           ) : (
             <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mx-auto mb-2" style={{ width: '80px', height: '80px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}>
               <i className="bi bi-camera fs-3"></i>
             </div>
           )}
-          <div>
-            <label className="btn btn-sm btn-outline-custom me-2">
-              <i className="bi bi-upload me-1"></i>Choisir une photo
-              <input type="file" accept="image/*" className="d-none" onChange={onPhotoFileChange} disabled={saving} />
+
+          {videoProgress > 0 && videoProgress < 100 && (
+            <div className="w-100 my-2">
+              <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                <span>Téléversement vidéo...</span>
+                <span>{videoProgress}%</span>
+              </div>
+              <div className="progress" style={{ height: '8px' }}>
+                <div className="progress-bar progress-bar-striped progress-bar-animated bg-warning" style={{ width: `${videoProgress}%` }}></div>
+              </div>
+            </div>
+          )}
+
+          {cvProgress > 0 && cvProgress < 100 && (
+            <div className="w-100 my-2">
+              <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                <span>Téléversement CV...</span>
+                <span>{cvProgress}%</span>
+              </div>
+              <div className="progress" style={{ height: '8px' }}>
+                <div className="progress-bar progress-bar-striped progress-bar-animated bg-success" style={{ width: `${cvProgress}%` }}></div>
+              </div>
+            </div>
+          )}
+
+          <div className="d-flex flex-wrap justify-content-center gap-2 mt-2">
+            <label className="btn btn-sm btn-outline-custom">
+              <i className="bi bi-image me-1"></i>Photo
+              <input type="file" accept="image/*" className="d-none" onChange={onPhotoFileChange} disabled={saving || isUploadingMedia} />
+            </label>
+            <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
+              <i className="bi bi-camera-reels me-1"></i>Vidéo (ProMax)
+              <input type="file" accept="video/*" className="d-none" onChange={onVideoFileChange} disabled={saving || isUploadingMedia} />
+            </label>
+            <label className="btn btn-sm btn-outline-success">
+              <i className="bi bi-file-earmark-pdf me-1"></i>CV (ProMax)
+              <input type="file" accept=".pdf,.doc,.docx" className="d-none" onChange={onCvFileChange} disabled={saving || isUploadingMedia} />
             </label>
           </div>
-          <input type="url" name="photo_url" className="form-control form-control-sm text-center mx-auto mt-2" style={{ maxWidth: '350px' }} placeholder="ou URL de la photo" value={formData.photo_url} onChange={onChange} disabled={saving} />
+          {formData.cv_url && <small className="text-success d-block mt-1"><i className="bi bi-check-circle me-1"></i>CV joint</small>}
         </div>
 
         <div className="col-md-6">
@@ -334,8 +431,8 @@ function ProfileForm({ formData, saving, isEditing, onChange, onPhotoFileChange,
         </div>
       </div>
       <div className="d-flex justify-content-end gap-2 mt-4">
-        <button type="button" className="btn btn-outline-custom" onClick={onCancel} disabled={saving}>Annuler</button>
-        <button type="submit" className="btn btn-primary-custom" disabled={saving}>
+        <button type="button" className="btn btn-outline-custom" onClick={onCancel} disabled={saving || isUploadingMedia}>Annuler</button>
+        <button type="submit" className="btn btn-primary-custom" disabled={saving || isUploadingMedia}>
           {saving ? <span className="spinner-border spinner-border-sm me-2" role="status"></span> : <i className="bi bi-check-lg me-1"></i>}
           {isEditing ? 'Enregistrer les modifications' : 'Publier le profil'}
         </button>

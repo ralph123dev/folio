@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
 import verifieBadge from '../assets/verifie.png';
+import orangeBadge from '../assets/orange.png';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
 
@@ -12,6 +14,8 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [showMyProfilesModal, setShowMyProfilesModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showProMaxModal, setShowProMaxModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [showSearchDetectionModal, setShowSearchDetectionModal] = useState(false);
   const [showBoostContactsSheet, setShowBoostContactsSheet] = useState(false);
   const [visits, setVisits] = useState([]);
@@ -43,6 +47,23 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       new Date(profileData.verified_until) > new Date()
     );
   }, [profileData]);
+
+  const isProMax = useMemo(() => {
+    return Boolean(
+      profileData?.is_promax &&
+      (!profileData?.promax_until || new Date(profileData.promax_until) > new Date())
+    );
+  }, [profileData]);
+
+  const badgeColorClass = useMemo(() => {
+    if (isProMax || profileData?.badge_color === 'orange') return 'badge-orange-img';
+    return '';
+  }, [isProMax, profileData]);
+
+  const userBadgeImg = useMemo(() => {
+    if (isProMax || profileData?.badge_color === 'orange') return orangeBadge;
+    return verifieBadge;
+  }, [isProMax, profileData]);
 
 
   const fetchProfile = async () => {
@@ -367,7 +388,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   <div className="d-flex align-items-center gap-1">
                     <p className="fw-bold mb-0 text-title" style={{ fontSize: '0.95rem' }}>{userData.nom_complet || 'Utilisateur'}</p>
                     {isUserVerified && (
-                      <img src={verifieBadge} alt="Vérifié" title="les profils verifier son ceux que nous avons verifier personellement" style={{ width: '18px', height: '18px', objectFit: 'contain', cursor: 'pointer' }} />
+                      <img src={userBadgeImg} alt="Vérifié" title="les profils verifier son ceux que nous avons verifier personellement" style={{ width: '18px', height: '18px', objectFit: 'contain', cursor: 'pointer' }} />
                     )}
                   </div>
                   <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>{userData.email}</p>
@@ -384,13 +405,26 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                 <li>
                   <button className="dropdown-item py-2 d-flex justify-content-between align-items-center" onClick={() => setShowVerificationModal(true)}>
                     <span>
-                      <img src={verifieBadge} alt="Badge" title="les profils verifier son ceux que nous avons verifier personellement" className="me-2" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                      <img src={userBadgeImg} alt="Badge" title="les profils verifier son ceux que nous avons verifier personellement" className="me-2" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                       <span className="fw-medium text-title">Badge de vérification</span>
                     </span>
                     {isUserVerified ? (
                       <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>Actif</span>
                     ) : (
                       <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>500 F/mois</span>
+                    )}
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item py-2 d-flex justify-content-between align-items-center" onClick={() => setShowProMaxModal(true)}>
+                    <span>
+                      <i className="bi bi-rocket-takeoff-fill me-2" style={{ color: '#FF7A00' }}></i>
+                      <span className="fw-bold text-title" style={{ color: isProMax ? '#FF7A00' : 'inherit' }}>Freelancer ProMax</span>
+                    </span>
+                    {isProMax ? (
+                      <span className="badge rounded-pill" style={{ backgroundColor: '#FF7A00', color: 'white', fontSize: '0.7rem' }}>Actif 🚀</span>
+                    ) : (
+                      <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style={{ fontSize: '0.7rem' }}>250 F/mois</span>
                     )}
                   </button>
                 </li>
@@ -437,6 +471,11 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                     <i className="bi bi-people me-2 text-muted"></i>Trouver des contacts à qui vendre
                   </button>
                 </li>
+                <li>
+                  <button className="dropdown-item py-2" onClick={() => setShowReportModal(true)}>
+                    <i className="bi bi-flag me-2 text-muted"></i>Signaler un problème
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -454,7 +493,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
             <h1 className="font-serif mb-1 d-flex align-items-center gap-2" style={{ color: 'var(--folio-title)', fontSize: '1.75rem' }}>
               <span>Bienvenue, {userData.nom_complet || 'Développeur'}</span>
               {isUserVerified && (
-                <img src={verifieBadge} alt="Compte vérifié" title="les profils verifier son ceux que nous avons verifier personellement" style={{ width: '26px', height: '26px', objectFit: 'contain', cursor: 'pointer' }} />
+                <img src={userBadgeImg} alt="Compte vérifié" title="les profils verifier son ceux que nous avons verifier personellement" style={{ width: '26px', height: '26px', objectFit: 'contain', cursor: 'pointer' }} />
               )}
               <span style={{ fontSize: '1.5rem' }}>👋</span>
             </h1>
@@ -823,6 +862,23 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
         />
       )}
 
+      {showProMaxModal && (
+        <ProMaxModal
+          userData={userData}
+          profileData={profileData}
+          onRefreshProfile={fetchProfile}
+          onOpenRecharge={() => setShowRechargeModal(true)}
+          onClose={() => setShowProMaxModal(false)}
+        />
+      )}
+
+      {showReportModal && (
+        <ReportProblemModal
+          userId={userData.id}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
+
       {showSearchDetectionModal && (
         <SearchDetectionModal stats={searchStats} onRefresh={fetchSearchStats} onClose={() => setShowSearchDetectionModal(false)} />
       )}
@@ -1043,7 +1099,7 @@ function VerificationModal({ userData, profileData, onRefreshProfile, onOpenRech
             ) : (
               <>
                 <div className="text-center mb-4 p-3 rounded-3" style={{ backgroundColor: '#F4F1FE' }}>
-                  <img src={verifieBadge} alt="Vérifié" className="mb-2 shadow-sm rounded-circle p-1 bg-white" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
+                  <img src={isVerified && profileData?.badge_color === 'orange' ? orangeBadge : verifieBadge} alt="Vérifié" className="mb-2 shadow-sm rounded-circle p-1 bg-white" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
                   <h6 className="fw-bold text-title mb-1">Certifiez votre identité sur Folio</h6>
                   <p className="small text-muted mb-0">Le badge de vérification renforce la confiance des clients et augmente vos opportunités.</p>
                 </div>
@@ -1109,7 +1165,7 @@ function VerificationModal({ userData, profileData, onRefreshProfile, onOpenRech
   MODAL DE RECHARGE — Paiement SasPay Mobile Money
 ─────────────────────────────────────────────────────────────────── */
 const PACKS = [
-  { id: 'test',    label: 'Compte test', title: 'Recharge de test', desc: 'Accès de test aux fonctionnalités premium', amount: 250 },
+  { id: 'test',    label: 'Compte test', title: 'Recharge de test', desc: 'Accès de test aux fonctionnalités premium', amount: 1700 },
   { id: 'starter', label: 'Starter', title: 'Optimisation SEO & Clics', desc: 'SEO portfolio et traqueur de clics', amount: 3500 },
   { id: 'pro',     label: 'Pro',     title: 'Boost Réseaux & Contacts', desc: 'Recommandations et prospection',     amount: 7500 },
 ];
@@ -1263,35 +1319,75 @@ function RechargeModal({ userData, profileData, onPaymentConfirmed, onClose }) {
     setError(null);
   };
 
-  const waitForPayment = async (paymentId) => {
-    for (let attempt = 0; attempt < 40; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      const { data, error: verifyError } = await supabase.functions.invoke('saspay-verify-payment', {
-        body: { paymentId, userId: userData.id },
-      });
+  const waitForPayment = (paymentId) => new Promise((resolve) => {
+    const completedStatuses = ['completed', 'success', 'succeeded', 'successful', 'paid', 'payment_success'];
+    const failedStatuses = ['failed', 'failure', 'cancelled', 'canceled', 'payment_failed'];
+    let settled = false;
+    let channel;
+    let timeoutId;
 
-      if (verifyError) continue;
-      const status = String(data?.status || data?.payment?.status || 'PENDING').toUpperCase();
-      if (['SUCCESS', 'SUCCEEDED', 'SUCCESSFUL', 'COMPLETED', 'PAID'].includes(status)) {
+    const cleanup = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (channel) void supabase.removeChannel(channel);
+    };
+
+    const finish = async (status) => {
+      if (settled || !status || status === 'pending') return;
+      settled = true;
+      cleanup();
+
+      if (completedStatuses.includes(status)) {
         await onPaymentConfirmed();
         setPaymentStatus('success');
         setLoading(false);
-        return true;
+        resolve(true);
+        return;
       }
-      if (['FAILED', 'FAILURE', 'CANCELLED', 'CANCELED'].includes(status)) {
+      if (failedStatuses.includes(status)) {
         setPaymentStatus('failed');
         setError('Le paiement a été refusé ou annulé. Aucun montant n’a été ajouté à ton solde.');
         setLoading(false);
-        return false;
+        resolve(false);
       }
-    }
+    };
 
-    setLoading(false);
-    await onPaymentConfirmed();
-    setPaymentStatus('pending');
-    setError('Le paiement a bien été envoyé à SasPay, mais sa confirmation prend plus de temps que prévu. Ne relance pas le paiement : ton solde sera crédité dès la confirmation.');
-    return false;
-  };
+    const transactionStatus = async () => {
+      const { data, error: transactionError } = await supabase
+        .from('payment_transactions')
+        .select('status')
+        .eq('provider_reference', paymentId)
+        .eq('user_id', userData.id)
+        .maybeSingle();
+
+      if (!transactionError && data?.status) await finish(String(data.status).toLowerCase());
+    };
+
+    channel = supabase
+      .channel(`payment-${paymentId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'payment_transactions',
+        filter: `provider_reference=eq.${paymentId}`,
+      }, (payload) => {
+        void finish(String(payload.new?.status || '').toLowerCase());
+      })
+      .subscribe();
+
+    void transactionStatus();
+    timeoutId = window.setTimeout(async () => {
+      if (settled) return;
+      await transactionStatus();
+      if (settled) return;
+
+      settled = true;
+      cleanup();
+      setLoading(false);
+      setPaymentStatus('pending');
+      setError('Le paiement a bien été envoyé à SasPay, mais sa confirmation prend plus de temps que prévu. Ne relance pas le paiement : ton solde sera crédité dès la confirmation.');
+      resolve(false);
+    }, 120000);
+  });
 
   const handlePayment = async () => {
     if (!selectedPack) return;
@@ -2351,3 +2447,528 @@ function AnalysisModal({ portfolioUrl, profileData, onClose, onPurchase }) {
     </div>
   );
 }
+
+function ReportProblemModal({ userId, onClose }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!title.trim() || !description.trim()) {
+      setError('Renseigne un titre et une description pour ton signalement.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+    const { error: insertError } = await supabase.from('signal').insert({
+      user_id: userId,
+      titre: title.trim(),
+      description: description.trim(),
+    });
+
+    if (insertError) {
+      setError('Impossible d’envoyer ton signalement pour le moment. Réessaie dans quelques instants.');
+    } else {
+      setSubmitted(true);
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div
+      className="optim-modal-overlay"
+      onClick={(event) => { if (event.target === event.currentTarget && !submitting) onClose(); }}
+      style={{ zIndex: 2100 }}
+    >
+      <div className="optim-modal-container" role="dialog" aria-modal="true" aria-labelledby="report-problem-title" onClick={(event) => event.stopPropagation()}>
+        <div className="p-4 p-md-5">
+          <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
+            <div>
+              <p className="folio-auth-eyebrow mb-1">Assistance Folio</p>
+              <h2 id="report-problem-title" className="font-serif fw-bold text-title mb-1">Signaler un problème</h2>
+              <p className="text-body-custom mb-0 small">Décris ce qui ne fonctionne pas afin que notre équipe puisse t’aider.</p>
+            </div>
+            <button type="button" className="btn btn-link p-0 text-muted" onClick={onClose} aria-label="Fermer" disabled={submitting}>
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          {submitted ? (
+            <div className="text-center py-3">
+              <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '3rem' }}></i>
+              <h3 className="h5 font-serif fw-bold text-title mt-3">Signalement envoyé</h3>
+              <p className="text-muted small mb-4">Merci. Notre équipe va examiner ton problème.</p>
+              <button type="button" className="btn btn-primary-custom w-100" onClick={onClose}>Fermer</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {error && <div className="alert alert-danger py-2 px-3 small" role="alert">{error}</div>}
+              <label htmlFor="report-title" className="form-label text-body-custom small fw-medium">Titre</label>
+              <input id="report-title" type="text" className="form-control mb-3" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="Ex. Paiement non crédité" disabled={submitting} required />
+              <label htmlFor="report-description" className="form-label text-body-custom small fw-medium">Description</label>
+              <textarea id="report-description" className="form-control mb-4" rows="5" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={3000} placeholder="Décris le problème rencontré..." disabled={submitting} required />
+              <button type="submit" className="btn btn-primary-custom w-100" disabled={submitting}>
+                {submitting ? <span className="spinner-border spinner-border-sm me-2" role="status" /> : <i className="bi bi-send me-2"></i>}
+                {submitting ? 'Envoi...' : 'Envoyer'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   MODAL FREELANCER PROMAX — 15000 F CFA / mois
+─────────────────────────────────────────────────────────────────── */
+function ProMaxModal({ userData, profileData, onRefreshProfile, onOpenRecharge, onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [showConfigStep, setShowConfigStep] = useState(false);
+
+  // Formulaire d'apprentissage post-souscription
+  const [userProfileId, setUserProfileId] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [cvUrl, setCvUrl] = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
+
+  const isProMax = Boolean(
+    profileData?.is_promax &&
+    (!profileData?.promax_until || new Date(profileData.promax_until) > new Date())
+  );
+
+  const solde = Number(profileData?.solde || 0);
+  const promaxCost = 15000;
+
+  // Charger le premier profil freelancer s'il existe
+  useEffect(() => {
+    const loadFreelancerProfile = async () => {
+      const { data } = await supabase.from('freelancers').select('*').eq('user_id', userData.id).limit(1).maybeSingle();
+      if (data) {
+        setUserProfileId(data.id);
+        setPhotoUrl(data.photo_url || '');
+        setVideoUrl(data.video_url || '');
+        setCvUrl(data.cv_url || '');
+      }
+    };
+    loadFreelancerProfile();
+  }, [userData.id]);
+
+  const handleSubscribe = async () => {
+    if (solde < promaxCost) {
+      setError("Solde insuffisant pour la souscription Freelancer ProMax (15000 F CFA). Veuillez recharger votre solde.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('subscribe_promax', {
+        target_user_id: userData.id
+      });
+
+      if (rpcError) {
+        const currentExp = profileData?.promax_until && new Date(profileData.promax_until) > new Date()
+          ? new Date(profileData.promax_until)
+          : new Date();
+        currentExp.setDate(currentExp.getDate() + 30);
+
+        const { error: updateError } = await supabase
+          .from('profils')
+          .update({
+            solde: solde - promaxCost,
+            is_promax: true,
+            promax_until: currentExp.toISOString(),
+            is_verified: true,
+            badge_color: 'orange'
+          })
+          .eq('id', userData.id);
+
+        if (updateError) throw updateError;
+      } else if (data && !data.success) {
+        throw new Error(data.message);
+      }
+
+      setSuccessMsg("Félicitations ! Votre abonnement Freelancer ProMax est maintenant actif avec le badge Orange !");
+      setShowConfigStep(true);
+      await onRefreshProfile();
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    } catch (err) {
+      console.error("Erreur souscription ProMax:", err);
+      setError(err?.message || "Une erreur est survenue lors de la souscription.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [cvProgress, setCvProgress] = useState(0);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadingMedia(true);
+      setError(null);
+      try {
+        const url = await uploadToCloudinary(file, 'image');
+        setPhotoUrl(url);
+      } catch (err) {
+        console.error("Erreur d'envoi photo:", err);
+        setError("Erreur lors de l'envoi de la photo : " + (err.message || 'Échec'));
+      } finally {
+        setUploadingMedia(false);
+      }
+    }
+  };
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadingMedia(true);
+      setVideoProgress(1);
+      setError(null);
+      try {
+        const url = await uploadToCloudinary(file, 'video', (percent) => setVideoProgress(percent));
+        setVideoUrl(url);
+      } catch (err) {
+        console.error("Erreur d'envoi vidéo:", err);
+        setError("Erreur lors de l'envoi de la vidéo sur Cloudinary : " + (err.message || 'Échec'));
+        setVideoProgress(0);
+      } finally {
+        setUploadingMedia(false);
+      }
+    }
+  };
+
+  const handleCvUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadingMedia(true);
+      setCvProgress(1);
+      setError(null);
+      try {
+        const url = await uploadToCloudinary(file, 'raw', (percent) => setCvProgress(percent));
+        setCvUrl(url);
+      } catch (err) {
+        console.error("Erreur d'envoi CV:", err);
+        setError("Erreur lors de l'envoi du CV sur Cloudinary : " + (err.message || 'Échec'));
+        setCvProgress(0);
+      } finally {
+        setUploadingMedia(false);
+      }
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (userProfileId) {
+        const { error: updateErr } = await supabase.from('freelancers').update({
+          photo_url: photoUrl || null,
+          video_url: videoUrl || null,
+          cv_url: cvUrl || null,
+        }).eq('id', userProfileId);
+        if (updateErr) throw updateErr;
+      } else {
+        const nameParts = (userData.nom_complet || 'Freelancer Pro').split(' ');
+        const { error: insertErr } = await supabase.from('freelancers').insert({
+          user_id: userData.id,
+          nom: nameParts[0] || 'Nom',
+          prenom: nameParts.slice(1).join(' ') || 'Prénom',
+          nom_freelancer: userData.nom_complet || 'Mon Profil ProMax',
+          activite: 'Freelancer ProMax',
+          description: 'Profil d\'expert Freelancer ProMax',
+          photo_url: photoUrl || null,
+          video_url: videoUrl || null,
+          cv_url: cvUrl || null,
+        });
+        if (insertErr) throw insertErr;
+      }
+      setConfigSaved(true);
+      await onRefreshProfile();
+    } catch (err) {
+      console.error("Erreur enregistrement profil ProMax:", err);
+      setError("Impossible d'enregistrer le profil. Assurez-vous d'avoir exécuté la mise à jour SQL dans Supabase SQL Editor. Erreur: " + (err.message || ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal fade show d-block"
+      tabIndex="-1"
+      role="dialog"
+      style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 1050 }}
+      onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
+    >
+      <div className="modal-dialog modal-dialog-centered promax-bottom-sheet-dialog modal-lg" role="document">
+        <div className="modal-content border-0 shadow" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+          <div className="modal-header border-0 pb-0 px-4 pt-4 d-flex justify-content-between align-items-center" style={{ background: 'linear-gradient(135deg, #FFF6F0 0%, #FFF0E5 100%)' }}>
+            <h5 className="modal-title font-serif fw-bold fs-4 text-title d-flex align-items-center gap-2">
+              <i className="bi bi-rocket-takeoff-fill fs-3" style={{ color: '#FF7A00' }}></i>
+              <span>Freelancer <span style={{ color: '#FF7A00' }}>ProMax</span></span>
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Fermer" disabled={loading}></button>
+          </div>
+
+          <div className="modal-body py-4 px-4">
+            {showConfigStep ? (
+              <div className="py-2">
+                <div className="text-center mb-4">
+                  <img src={orangeBadge} alt="Badge Orange ProMax" style={{ width: '64px', height: '64px', objectFit: 'contain' }} className="mb-2" />
+                  <h4 className="font-serif fw-bold text-title mb-1">Configure ton profil ProMax 🚀</h4>
+                  <p className="text-muted small">Ajoute ta vidéo de présentation, ton CV et choisis ton média de profil.</p>
+                </div>
+
+                {configSaved && (
+                  <div className="alert alert-success py-2 px-3 small text-center mb-3">
+                    <i className="bi bi-check-circle-fill me-2"></i>Vos informations ont été enregistrées avec succès ! Vous pourrez les modifier à tout moment dans "Mes Profils".
+                  </div>
+                )}
+
+                <div className="row g-3 mb-4">
+                  {/* Option photo ou vidéo de profil */}
+                  <div className="col-12 col-md-6">
+                    <div className="p-3 border rounded-3 bg-white h-100 text-center">
+                      <h6 className="fw-bold text-title mb-2"><i className="bi bi-camera-reels text-warning me-2"></i>Photo ou Vidéo de Profil</h6>
+                      <div className="mb-3 mx-auto" style={{ width: '90px', height: '90px' }}>
+                        {videoUrl ? (
+                          <video src={videoUrl} autoPlay loop muted playsInline className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #FF7A00' }} />
+                        ) : photoUrl ? (
+                          <img src={photoUrl} alt="Aperçu" className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #FF7A00' }} />
+                        ) : (
+                          <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: '90px', height: '90px', backgroundColor: '#FFF0E5', color: '#FF7A00' }}>
+                            <i className="bi bi-person fs-1"></i>
+                          </div>
+                        )}
+                      </div>
+                      {videoProgress > 0 && videoProgress < 100 && (
+                        <div className="w-100 mt-3">
+                          <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                            <span>Téléversement vidéo...</span>
+                            <span>{videoProgress}%</span>
+                          </div>
+                          <div className="progress" style={{ height: '8px' }}>
+                            <div className="progress-bar progress-bar-striped progress-bar-animated bg-warning" style={{ width: `${videoProgress}%` }}></div>
+                          </div>
+                        </div>
+                      )}
+                      <div className="d-flex flex-column gap-2 mt-3">
+                        <label className="btn btn-sm btn-outline-custom">
+                          <i className="bi bi-image me-1"></i>Choisir une photo
+                          <input type="file" accept="image/*" className="d-none" onChange={handlePhotoUpload} disabled={loading || uploadingMedia} />
+                        </label>
+                        <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
+                          <i className="bi bi-camera-video me-1"></i>Choisir une vidéo de présentation
+                          <input type="file" accept="video/*" className="d-none" onChange={handleVideoUpload} disabled={loading || uploadingMedia} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ajouter son CV */}
+                  <div className="col-12 col-md-6">
+                    <div className="p-3 border rounded-3 bg-white h-100 text-center d-flex flex-column justify-content-between">
+                      <div>
+                        <h6 className="fw-bold text-title mb-2"><i className="bi bi-file-earmark-pdf text-success me-2"></i>Ajouter son CV au profil</h6>
+                        <p className="small text-muted mb-3">Téléverse ton CV au format PDF ou Word pour qu'il soit directement téléchargeable sur ta carte.</p>
+                        {cvProgress > 0 && cvProgress < 100 && (
+                          <div className="w-100 mb-3">
+                            <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                              <span>Téléversement CV...</span>
+                              <span>{cvProgress}%</span>
+                            </div>
+                            <div className="progress" style={{ height: '8px' }}>
+                              <div className="progress-bar progress-bar-striped progress-bar-animated bg-success" style={{ width: `${cvProgress}%` }}></div>
+                            </div>
+                          </div>
+                        )}
+                        {cvUrl ? (
+                          <div className="alert alert-success py-2 px-3 small mb-3">
+                            <i className="bi bi-check-circle-fill me-1"></i>CV joint avec succès !
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-3 mb-3" style={{ backgroundColor: '#F8F9FA', border: '1px dashed #CED4DA' }}>
+                            <i className="bi bi-cloud-arrow-up fs-2 text-muted"></i>
+                            <span className="d-block small text-muted">Aucun fichier choisi</span>
+                          </div>
+                        )}
+                      </div>
+                      <label className="btn btn-sm btn-outline-success w-100">
+                        <i className="bi bi-file-earmark-plus me-1"></i>{cvUrl ? 'Changer de CV' : 'Téléverser mon CV (PDF/DOC)'}
+                        <input type="file" accept=".pdf,.doc,.docx" className="d-none" onChange={handleCvUpload} disabled={loading || uploadingMedia} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {uploadingMedia && (
+                  <div className="text-center py-2 text-primary small">
+                    <span className="spinner-border spinner-border-sm me-2"></span>Téléversement vers Cloudinary en cours...
+                  </div>
+                )}
+
+                <p className="small text-muted text-center mb-3">
+                  💡 Note : Vous pourrez modifier ces informations à tout moment depuis le menu <strong>"Mes Profils"</strong>.
+                </p>
+
+                <div className="d-flex gap-2">
+                  <button type="button" className="btn btn-outline-custom w-50 py-2" onClick={onClose} disabled={loading}>
+                    Passer pour l'instant
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary-custom w-50 py-2"
+                    style={{ backgroundColor: '#FF7A00', borderColor: '#FF7A00' }}
+                    onClick={handleSaveConfig}
+                    disabled={loading || uploadingMedia || (videoProgress > 0 && videoProgress < 100) || (cvProgress > 0 && cvProgress < 100)}
+                  >
+                    {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-check-circle me-1"></i>}
+                    Enregistrer mon profil
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-3 rounded-4 mb-4" style={{ background: 'linear-gradient(135deg, #FF6B00 0%, #FF9E00 100%)', color: 'white' }}>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <span className="badge bg-white text-dark font-sans fw-bold px-3 py-1 rounded-pill mb-2">Offre Exclusive</span>
+                      <h4 className="font-serif fw-bold mb-1">Propulsez votre carrière Freelance</h4>
+                      <p className="mb-0 small opacity-90">Accédez à toutes les fonctionnalités avancées et démarquez-vous des autres freelances.</p>
+                    </div>
+                    <div className="text-end d-none d-sm-block">
+                      <span className="display-6 fw-bold">15 000</span>
+                      <span className="fs-6 d-block">FCFA / mois</span>
+                    </div>
+                  </div>
+                </div>
+
+                <h6 className="font-serif fw-bold text-title mb-3">Toutes les fonctionnalités ProMax incluses :</h6>
+                
+                <div className="row g-3 mb-4">
+                  <div className="col-12 col-md-6">
+                    <div className="p-3 border rounded-3 h-100 d-flex align-items-start gap-3 bg-white shadow-sm">
+                      <div className="rounded-3 p-2 d-flex align-items-center justify-content-center text-white" style={{ backgroundColor: '#FF7A00', width: '40px', height: '40px', flexShrink: 0 }}>
+                        <i className="bi bi-camera-reels-fill fs-5"></i>
+                      </div>
+                      <div>
+                        <h6 className="fw-bold text-title mb-1" style={{ fontSize: '0.95rem' }}>Vidéo en photo de profil</h6>
+                        <p className="small text-muted mb-0">Ajoutez une courte vidéo de présentation dynamique directement sur votre photo de profil.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <div className="p-3 border rounded-3 h-100 d-flex align-items-start gap-3 bg-white shadow-sm">
+                      <div className="rounded-3 p-2 d-flex align-items-center justify-content-center text-white" style={{ backgroundColor: '#FF7A00', width: '40px', height: '40px', flexShrink: 0 }}>
+                        <i className="bi bi-file-earmark-pdf-fill fs-5"></i>
+                      </div>
+                      <div>
+                        <h6 className="fw-bold text-title mb-1" style={{ fontSize: '0.95rem' }}>Ajouter son CV au profil</h6>
+                        <p className="small text-muted mb-0">Attachez votre CV (PDF/DOC) pour que les recruteurs et clients puissent le consulter en 1 clic.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <div className="p-3 border rounded-3 h-100 d-flex align-items-start gap-3 bg-white shadow-sm">
+                      <div className="rounded-3 p-2 d-flex align-items-center justify-content-center text-white" style={{ backgroundColor: '#FF7A00', width: '40px', height: '40px', flexShrink: 0 }}>
+                        <i className="bi bi-sort-numeric-down fs-5"></i>
+                      </div>
+                      <div>
+                        <h6 className="fw-bold text-title mb-1" style={{ fontSize: '0.95rem' }}>En tête des recherches</h6>
+                        <p className="small text-muted mb-0">Votre profil est automatiquement positionné tout en haut des résultats de recherche.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <div className="p-3 border rounded-3 h-100 d-flex align-items-start gap-3 bg-white shadow-sm">
+                      <div className="rounded-3 p-2 d-flex align-items-center justify-content-center text-white" style={{ backgroundColor: '#FF7A00', width: '40px', height: '40px', flexShrink: 0 }}>
+                        <i className="bi bi-download fs-5"></i>
+                      </div>
+                      <div>
+                        <h6 className="fw-bold text-title mb-1" style={{ fontSize: '0.95rem' }}>Télécharger des contacts</h6>
+                        <p className="small text-muted mb-0">Accédez au téléchargement des listes de contacts d'entreprises et clients potentiels.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-12">
+                    <div className="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm" style={{ borderLeft: '5px solid #FF7A00' }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <img src={orangeBadge} alt="Badge Orange" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+                        <div>
+                          <h6 className="fw-bold text-title mb-0" style={{ fontSize: '0.95rem' }}>Badge Offert Gratuitement (Couleur Orange) 🟠</h6>
+                          <p className="small text-muted mb-0">Votre badge certifié passe automatiquement du bleu à l'orange vif !</p>
+                        </div>
+                      </div>
+                      <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">Offert</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-3 p-3 mb-4 bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="text-body-custom">Tarif de l'abonnement</span>
+                    <strong className="fs-5" style={{ color: '#FF7A00' }}>15 000 F CFA / mois</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-body-custom">Votre solde actuel</span>
+                    <strong className={solde >= promaxCost ? 'text-success' : 'text-danger'}>
+                      {solde.toLocaleString('fr-FR')} F CFA
+                    </strong>
+                  </div>
+                </div>
+
+                {isProMax && (
+                  <div className="alert alert-success py-2 px-3 small mb-3">
+                    <i className="bi bi-check-circle-fill me-2"></i>
+                    Vous êtes déjà abonné à Freelancer ProMax (Actif jusqu'au {new Date(profileData.promax_until).toLocaleDateString('fr-FR')}). Cliquez ci-dessous pour prolonger de 30 jours ou configurer vos medias.
+                  </div>
+                )}
+
+                {error && (
+                  <div className="alert alert-danger py-2 px-3 small mb-3">
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                    {error}
+                    {solde < promaxCost && (
+                      <div className="mt-2">
+                        <button type="button" className="btn btn-sm btn-primary-custom" onClick={() => { onClose(); onOpenRecharge(); }}>
+                          <i className="bi bi-wallet2 me-1"></i>Recharger mon solde
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="d-flex gap-2">
+                  <button type="button" className="btn btn-outline-custom w-50 py-2" onClick={onClose} disabled={loading}>
+                    Annuler
+                  </button>
+                  <button type="button" className="btn btn-primary-custom w-50 py-2" style={{ backgroundColor: '#FF7A00', borderColor: '#FF7A00' }} onClick={handleSubscribe} disabled={loading}>
+                    {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-rocket-takeoff me-1"></i>}
+                    {isProMax ? 'Configurer / Prolongé' : 'Souscrire à l\'offre (15 000 F)'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
