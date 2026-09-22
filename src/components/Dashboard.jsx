@@ -333,6 +333,31 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   };
 
   useEffect(() => {
+    let active = true;
+
+    const restoreContactBoost = async () => {
+      const { data, error } = await supabase.rpc('get_my_contact_boost_subscription');
+      if (!active) return;
+
+      const subscription = Array.isArray(data) ? data[0] : data;
+      if (!error && subscription?.sector && subscription?.contact_count) {
+        const details = {
+          secteur: subscription.sector,
+          count: subscription.contact_count,
+          price: subscription.boost_cost || null,
+        };
+        setBoostDetails(details);
+        localStorage.setItem(`folio-boost-details-${userData.id}`, JSON.stringify(details));
+        return;
+      }
+
+    };
+
+    restoreContactBoost();
+    return () => { active = false; };
+  }, [userData.id]);
+
+  useEffect(() => {
     if (boostDetails) fetchBoostContacts(boostDetails);
   }, [boostDetails]);
 
