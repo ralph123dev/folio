@@ -13,6 +13,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showMyProfilesModal, setShowMyProfilesModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showSearchDetectionModal, setShowSearchDetectionModal] = useState(false);
+  const [showBoostContactsSheet, setShowBoostContactsSheet] = useState(false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
@@ -361,7 +362,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
               >
                 <i className="bi bi-person-circle"></i>
               </button>
-              <ul className="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="profileDropdown" style={{ minWidth: '290px', borderRadius: '12px', padding: '10px' }}>
+              <ul className="dropdown-menu dropdown-menu-end shadow border-0 dashboard-profile-dropdown" aria-labelledby="profileDropdown" style={{ minWidth: '290px', borderRadius: '12px', padding: '10px' }}>
                 <li className="px-3 py-2 border-bottom mb-2">
                   <div className="d-flex align-items-center gap-1">
                     <p className="fw-bold mb-0 text-title" style={{ fontSize: '0.95rem' }}>{userData.nom_complet || 'Utilisateur'}</p>
@@ -613,7 +614,18 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                 )}
               </div>
               {boostContacts.length > 0 && (
-                <BoostContactsList contacts={boostContacts} details={boostDetails} userId={userData.id} />
+                <>
+                  <div className="boost-contacts-desktop">
+                    <BoostContactsList contacts={boostContacts} details={boostDetails} userId={userData.id} instanceId="desktop" />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary-custom w-100 mt-3 boost-contacts-mobile-trigger"
+                    onClick={() => setShowBoostContactsSheet(true)}
+                  >
+                    <i className="bi bi-telephone-outbound me-2"></i>Appeler Prospects
+                  </button>
+                </>
               )}
               {boostDetails && boostContacts.length === 0 && (
                 <div className="alert alert-info mt-3 mb-0" role="status">
@@ -751,7 +763,9 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
               )}
             </div>
             {boostContacts.length > 0 && (
-              <SeoResultsPanel portfolioUrl={profileData?.portfolio_url || portfolioUrl} profileData={profileData} details={boostDetails} />
+              <div className="boost-contacts-desktop">
+                <SeoResultsPanel portfolioUrl={profileData?.portfolio_url || portfolioUrl} profileData={profileData} details={boostDetails} />
+              </div>
             )}
           </div>
         </div>
@@ -811,6 +825,20 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
 
       {showSearchDetectionModal && (
         <SearchDetectionModal stats={searchStats} onRefresh={fetchSearchStats} onClose={() => setShowSearchDetectionModal(false)} />
+      )}
+
+      {showBoostContactsSheet && (
+        <div className="mobile-bottom-sheet-overlay" onClick={(event) => { if (event.target === event.currentTarget) setShowBoostContactsSheet(false); }}>
+          <div className="mobile-bottom-sheet dashboard-contacts-sheet" role="dialog" aria-modal="true" aria-labelledby="boost-contacts-sheet-title">
+            <div className="mobile-bottom-sheet-header">
+              <h2 id="boost-contacts-sheet-title" className="h5 font-serif fw-bold text-title mb-0">Tes prospects</h2>
+              <button type="button" className="btn btn-link p-0 text-muted" onClick={() => setShowBoostContactsSheet(false)} aria-label="Fermer">
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <BoostContactsList contacts={boostContacts} details={boostDetails} userId={userData.id} instanceId="mobile" />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1934,7 +1962,7 @@ const getBoostContactKey = (contact) => {
   return `email:${contact.email.trim().toLowerCase()}`;
 };
 
-function BoostContactsList({ contacts, details, userId }) {
+function BoostContactsList({ contacts, details, userId, instanceId = 'default' }) {
   const [page, setPage] = useState(0);
   const [contactFilter, setContactFilter] = useState('all');
   const [usedContactKeys, setUsedContactKeys] = useState(() => new Set());
@@ -2019,8 +2047,8 @@ function BoostContactsList({ contacts, details, userId }) {
         </div>
         <div className="d-flex flex-wrap align-items-end gap-2">
           <div>
-            <label htmlFor="boost-contact-filter" className="form-label small text-muted mb-1">Afficher</label>
-            <select id="boost-contact-filter" className="form-select form-select-sm" value={contactFilter} onChange={handleFilterChange}>
+            <label htmlFor={`boost-contact-filter-${instanceId}`} className="form-label small text-muted mb-1">Afficher</label>
+            <select id={`boost-contact-filter-${instanceId}`} className="form-select form-select-sm" value={contactFilter} onChange={handleFilterChange}>
               <option value="all">Tous les contacts</option>
               <option value="email">E-mails uniquement</option>
               <option value="whatsapp">Numéros WhatsApp uniquement</option>

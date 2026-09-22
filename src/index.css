@@ -71,6 +71,85 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
   background-color: #171827;
 }
 
+.boost-contacts-mobile-trigger,
+.mobile-bottom-sheet-overlay {
+  display: none;
+}
+
+.mobile-bottom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(38, 33, 92, 0.08);
+}
+
+@media (max-width: 767.98px) {
+  .boost-contacts-desktop {
+    display: none;
+  }
+
+  .boost-contacts-mobile-trigger {
+    display: block;
+  }
+
+  .dashboard-profile-dropdown.show {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    z-index: 1080;
+    width: 100%;
+    min-width: 0 !important;
+    max-height: calc(100dvh - 0.5rem);
+    margin: 0 !important;
+    padding: 1rem !important;
+    overflow-y: auto;
+    border-radius: 1rem 1rem 0 0 !important;
+    transform: none !important;
+    animation: dashboard-sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dashboard-profile-dropdown.show::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgba(38, 33, 92, 0.45);
+    backdrop-filter: blur(4px);
+  }
+
+  .mobile-bottom-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2050;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(38, 33, 92, 0.45);
+    backdrop-filter: blur(4px);
+  }
+
+  .mobile-bottom-sheet {
+    width: 100%;
+    max-height: calc(100dvh - 0.5rem);
+    overflow-y: auto;
+    border-radius: 1rem 1rem 0 0;
+    background: var(--folio-bg);
+    box-shadow: 0 -1rem 3rem rgba(38, 33, 92, 0.18);
+    animation: dashboard-sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dashboard-contacts-sheet > .mt-3 {
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+@keyframes dashboard-sheet-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Custom Buttons */
 .btn-primary-custom {
   background-color: var(--folio-primary);
