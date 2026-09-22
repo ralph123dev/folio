@@ -298,7 +298,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
 
     if (error) {
       console.error('Erreur lors du chargement des contacts boost:', error);
-      setBoostContactsError('Les contacts seront disponibles dès que le stock aura été chargé.');
+      setBoostContactsError('Impossible de charger les contacts pour le moment. Réessaie dans quelques instants.');
       return;
     }
 

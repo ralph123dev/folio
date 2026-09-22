@@ -6,6 +6,11 @@
  * is not set (local dev convenience).
  */
 
+const DEVELOPMENT_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
 const FALLBACK_ORIGINS = [
   "https://folio.com",
   "https://www.foliodev.site",
@@ -15,10 +20,11 @@ const FALLBACK_ORIGINS = [
 /** Returns the parsed list of allowed origins. */
 const getAllowedOrigins = (): string[] => {
   const env = Deno.env.get("ALLOWED_ORIGINS");
-  if (env) {
-    return env.split(",").map((o) => o.trim()).filter(Boolean);
-  }
-  return FALLBACK_ORIGINS;
+  const configuredOrigins = env
+    ? env.split(",").map((o) => o.trim()).filter(Boolean)
+    : FALLBACK_ORIGINS;
+
+  return [...new Set([...configuredOrigins, ...DEVELOPMENT_ORIGINS])];
 };
 
 /**
