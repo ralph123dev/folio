@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../assets/logo.jpeg';
+import logo from '../assets/logo.jpg';
 
 const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onHome, onDashboard, onLogout }) => {
   return (

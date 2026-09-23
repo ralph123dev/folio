@@ -480,11 +480,13 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </button>
                 </li>
                 <li><hr className="dropdown-divider" /></li>
-                <li>
-                  <button className="dropdown-item py-2" onClick={() => setShowBlogMaxModal(true)}>
-                    <i className="bi bi-journal-richtext me-2 text-muted"></i>Blog Max
-                  </button>
-                </li>
+                {isProMax && (
+                  <li>
+                    <button className="dropdown-item py-2" onClick={() => setShowBlogMaxModal(true)}>
+                      <i className="bi bi-journal-richtext me-2 text-muted"></i>Blog Max
+                    </button>
+                  </li>
+                )}
                 <li>
                   <button className="dropdown-item py-2" onClick={() => setShowMyProfilesModal(true)}>
                     <i className="bi bi-person-vcard me-2 text-muted"></i>Mes Profils
