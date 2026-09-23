@@ -16,17 +16,15 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
   if (typeof file === 'string') return file; // Si c'est déjà une URL ou une chaîne
 
   const rawCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'rlxkpeix';
-  const cloudName = rawCloudName.trim();
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ? import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET.trim() : 'profil_video';
-  if (!uploadPreset) {
-    throw new Error('Configuration Cloudinary manquante : VITE_CLOUDINARY_UPLOAD_PRESET.');
-  }
+  const cloudName = rawCloudName.replace(/["'\r\n]/g, '').trim();
+  const rawPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'profil_video';
+  const uploadPreset = rawPreset.replace(/["'\r\n]/g, '').trim();
 
   let targetType = resourceType;
   if (resourceType === 'auto') {
-    if (file.type.startsWith('video/')) {
+    if (file.type && file.type.startsWith('video/')) {
       targetType = 'video';
-    } else if (file.type.startsWith('image/')) {
+    } else if (file.type && file.type.startsWith('image/')) {
       targetType = 'image';
     } else {
       targetType = 'raw';
@@ -37,47 +35,65 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
   formData.append('file', file);
   formData.append('upload_preset', uploadPreset);
 
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${targetType}/upload`;
+  const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${targetType}/upload`;
 
-    xhr.open('POST', endpoint);
+  try {
+    return await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', endpoint);
 
-    if (xhr.upload && onProgress) {
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.secure_url) {
+              if (onProgress) onProgress(100);
+              resolve(data.secure_url);
+            } else {
+              reject(new Error(data.error?.message || 'Upload échoué.'));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        } else {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            reject(new Error(data.error?.message || `Erreur Cloudinary (${xhr.status})`));
+          } catch {
+            reject(new Error(`Erreur serveur Cloudinary (${xhr.status})`));
+          }
         }
       };
-    }
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (data.secure_url) {
-            if (onProgress) onProgress(100);
-            resolve(data.secure_url);
-          } else {
-            reject(new Error(data.error?.message || 'Upload échoué.'));
-          }
-        } catch (e) {
-          reject(e);
+      xhr.onerror = () => reject(new Error('XHR_NET_ERROR'));
+      xhr.send(formData);
+    });
+  } catch (err) {
+    if (err.message === 'XHR_NET_ERROR') {
+      try {
+        const resp = await fetch(endpoint, { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (resp.ok && data.secure_url) {
+          if (onProgress) onProgress(100);
+          return data.secure_url;
         }
-      } else {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          reject(new Error(data.error?.message || `Erreur Cloudinary (${xhr.status})`));
-        } catch {
-          reject(new Error(`Erreur serveur Cloudinary (${xhr.status})`));
-        }
+        throw new Error(data.error?.message || `Erreur Cloudinary (${resp.status})`);
+      } catch (fetchErr) {
+        console.error('Échec envoi Cloudinary via fetch:', fetchErr);
+        throw new Error('Impossible de contacter Cloudinary. Vérifiez votre connexion internet ou désactivez votre bloqueur de publicité (AdBlock/Brave).');
       }
-    };
-
-    xhr.onerror = () => reject(new Error('Erreur de connexion réseau lors de l\'envoi vers Cloudinary.'));
-    xhr.send(formData);
-  });
+    }
+    throw err;
+  }
 };
 
 /**
