@@ -2,12 +2,22 @@
  * Helper d'upload pour Cloudinary utilisant la signature API SHA-1 et XMLHttpRequest
  * Permet le téléversement direct et la progression réelle (0% à 100%) des vidéos et CVs
  */
+export const sanitizeMediaUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  let cleanUrl = url.trim();
+  if (cleanUrl.startsWith('http:')) {
+    cleanUrl = cleanUrl.replace(/^http:/, 'https:');
+  }
+  return cleanUrl.replace('res.cloudinary.com/lrlxkpeix/', 'res.cloudinary.com/rlxkpeix/');
+};
+
 export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress = null) => {
   if (!file) return null;
   if (typeof file === 'string') return file; // Si c'est déjà une URL ou une chaîne
 
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'lrlxkpeix';
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  const rawCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'rlxkpeix';
+  const cloudName = rawCloudName.trim();
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ? import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET.trim() : 'profil_video';
   if (!uploadPreset) {
     throw new Error('Configuration Cloudinary manquante : VITE_CLOUDINARY_UPLOAD_PRESET.');
   }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import verifieBadge from '../assets/verifie.png';
 import orangeBadge from '../assets/orange.png';
-import { uploadToCloudinary, getCloudinaryDownloadUrl } from '../lib/cloudinary';
+import { uploadToCloudinary, getCloudinaryDownloadUrl, sanitizeMediaUrl } from '../lib/cloudinary';
 import './auth.css';
 
 const DEFAULT_PROFESSIONS = [
@@ -17,6 +17,52 @@ const DEFAULT_PROFESSIONS = [
   'Graphiste',
   'Spécialiste SEO',
 ];
+
+function FreelancerMediaAvatar({ videoUrl, photoUrl, alt, isProMax }) {
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
+
+  const cleanVideo = sanitizeMediaUrl(videoUrl);
+  const cleanPhoto = sanitizeMediaUrl(photoUrl);
+
+  const borderStyle = isProMax ? '3px solid #FF7A00' : '3px solid #EEEDFE';
+
+  if (cleanVideo && !videoFailed) {
+    return (
+      <video
+        src={cleanVideo}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="rounded-circle mb-3 shadow-sm"
+        style={{ width: '90px', height: '90px', objectFit: 'cover', border: borderStyle }}
+        onError={() => setVideoFailed(true)}
+      />
+    );
+  }
+
+  if (cleanPhoto && !photoFailed) {
+    return (
+      <img
+        src={cleanPhoto}
+        alt={alt}
+        className="rounded-circle mb-3 shadow-sm"
+        style={{ width: '90px', height: '90px', objectFit: 'cover', border: borderStyle }}
+        onError={() => setPhotoFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-sm"
+      style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}
+    >
+      <i className="bi bi-person fs-1"></i>
+    </div>
+  );
+}
 
 export default function Freelancers({ user, onStart }) {
   const [freelancers, setFreelancers] = useState([]);
@@ -380,32 +426,12 @@ export default function Freelancers({ user, onStart }) {
                 return (
                 <div className="col-md-4" key={freelancer.id}>
                   <article className={`h-100 p-4 border rounded-4 d-flex flex-column align-items-center text-center bg-white shadow-sm hover-shadow transition-all position-relative ${isProMax ? 'promax-card-highlight' : ''}`}>
-                    {freelancer.video_url ? (
-                      <video
-                        src={freelancer.video_url}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="rounded-circle mb-3 shadow-sm"
-                        style={{ width: '90px', height: '90px', objectFit: 'cover', border: isProMax ? '3px solid #FF7A00' : '3px solid #EEEDFE' }}
-                      />
-                    ) : freelancer.photo_url ? (
-                      <img
-                        src={freelancer.photo_url}
-                        alt={freelancer.nom_freelancer}
-                        className="rounded-circle mb-3 shadow-sm"
-                        style={{ width: '90px', height: '90px', objectFit: 'cover', border: isProMax ? '3px solid #FF7A00' : '3px solid #EEEDFE' }}
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
-                      />
-                    ) : (
-                      <div
-                        className="rounded-circle mb-3 d-flex align-items-center justify-content-center shadow-sm"
-                        style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}
-                      >
-                        <i className="bi bi-person fs-1"></i>
-                      </div>
-                    )}
+                    <FreelancerMediaAvatar
+                      videoUrl={freelancer.video_url}
+                      photoUrl={freelancer.photo_url}
+                      alt={freelancer.nom_freelancer}
+                      isProMax={isProMax}
+                    />
 
                     <div className="d-flex align-items-center justify-content-center gap-1 mb-1">
                       <h3 className="font-serif h5 mb-0 text-title">{freelancer.nom_freelancer}</h3>

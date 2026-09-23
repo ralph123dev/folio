@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { uploadToCloudinary } from '../lib/cloudinary';
+import { uploadToCloudinary, sanitizeMediaUrl } from '../lib/cloudinary';
 
 const emptyForm = {
   nom: '',
@@ -318,9 +318,9 @@ function ProfileForm({ formData, saving, videoProgress, cvProgress, isEditing, o
         {/* Photo et Vidéo de profil & CV */}
         <div className="col-12 text-center mb-2">
           {formData.video_url ? (
-            <video src={formData.video_url} autoPlay loop muted playsInline className="rounded-circle shadow-sm mb-2" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '2px solid #FF7A00' }} />
+            <video src={sanitizeMediaUrl(formData.video_url)} autoPlay loop muted playsInline className="rounded-circle shadow-sm mb-2" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '2px solid #FF7A00' }} />
           ) : formData.photo_url ? (
-            <img src={formData.photo_url} alt="Aperçu" className="rounded-circle shadow-sm mb-2" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '2px solid var(--folio-primary)' }} />
+            <img src={sanitizeMediaUrl(formData.photo_url)} alt="Aperçu" className="rounded-circle shadow-sm mb-2" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '2px solid var(--folio-primary)' }} />
           ) : (
             <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mx-auto mb-2" style={{ width: '80px', height: '80px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}>
               <i className="bi bi-camera fs-3"></i>
