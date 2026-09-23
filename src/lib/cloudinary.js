@@ -2,21 +2,15 @@
  * Helper d'upload pour Cloudinary utilisant la signature API SHA-1 et XMLHttpRequest
  * Permet le téléversement direct et la progression réelle (0% à 100%) des vidéos et CVs
  */
-async function sha1Hex(str) {
-  const enc = new TextEncoder();
-  const hash = await crypto.subtle.digest('SHA-1', enc.encode(str));
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress = null) => {
   if (!file) return null;
   if (typeof file === 'string') return file; // Si c'est déjà une URL ou une chaîne
 
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'lrlxkpeix';
-  const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY || '927489433532747';
-  const apiSecret = import.meta.env.VITE_CLOUDINARY_API_SECRET || 'dVwY0LpOU4lZ8A-xuZNl-ebWFjg';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  if (!uploadPreset) {
+    throw new Error('Configuration Cloudinary manquante : VITE_CLOUDINARY_UPLOAD_PRESET.');
+  }
 
   let targetType = resourceType;
   if (resourceType === 'auto') {
@@ -29,15 +23,9 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
     }
   }
 
-  const timestamp = Math.floor(Date.now() / 1000);
-  const stringToSign = `timestamp=${timestamp}${apiSecret}`;
-  const signature = await sha1Hex(stringToSign);
-
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('api_key', apiKey);
-  formData.append('timestamp', timestamp.toString());
-  formData.append('signature', signature);
+  formData.append('upload_preset', uploadPreset);
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
