@@ -69,6 +69,15 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     return verifieBadge;
   }, [isProMax, profileData]);
 
+  const handleOpenAiAnalysis = () => {
+    if (!isProMax) {
+      setShowProMaxModal(true);
+      return;
+    }
+
+    setShowAiAnalysisModal(true);
+  };
+
 
   const fetchProfile = async () => {
     try {
@@ -540,7 +549,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item py-2 fw-medium" style={{ color: '#8b5cf6' }} onClick={() => setShowAiAnalysisModal(true)}>
+                  <button className="dropdown-item py-2 fw-medium" style={{ color: '#8b5cf6' }} onClick={handleOpenAiAnalysis}>
                     <i className="bi bi-magic me-2" style={{ color: '#8b5cf6' }}></i>Analyser par IA (Gemini)
                   </button>
                 </li>
@@ -982,7 +991,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   <button 
                     className="btn btn-sm w-100 py-1.5 text-white" 
                     style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }}
-                    onClick={() => setShowAiAnalysisModal(true)}
+                    onClick={handleOpenAiAnalysis}
                   >
                     <i className="bi bi-magic me-1"></i>Analyser par IA
                   </button>
