@@ -238,7 +238,7 @@ const Features = ({ user, onStart, onDashboard }) => {
                 <p className="text-body-custom flex-grow-1 mb-4">
                   Créez un profil freelance bien optimisé pour le SEO et mettez mieux en valeur vos activités auprès des clients.
                 </p>
-                <div className="pricing-price mb-4">5 000 <small>F / mois</small></div>
+                <div className="pricing-price mb-4">2 500 <small>F / mois</small></div>
                 <button type="button" className="btn btn-primary-custom w-100">Choisir cette offre</button>
               </article>
             </div>
@@ -253,7 +253,7 @@ const Features = ({ user, onStart, onDashboard }) => {
                 <p className="text-body-custom flex-grow-1 mb-4">
                   Accède à un réseau de plus de 31 000 contacts qualifiés à prospecter ou à toucher avec tes campagnes publicitaires. Donne à ton business les bonnes opportunités pour décoller.
                 </p>
-                <div className="pricing-price mb-4">12 000 <small>F / mois</small></div>
+                <div className="pricing-price mb-4">6 000 <small>F / mois</small></div>
                 <button type="button" className="btn btn-outline-custom w-100">Choisir cette offre</button>
               </article>
             </div>

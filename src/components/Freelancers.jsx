@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import verifieBadge from '../assets/verifie.png';
 import orangeBadge from '../assets/orange.png';
+import freelancerImg from '../assets/freelancer.jpg';
+import clientImg from '../assets/client.jpg';
 import { uploadToCloudinary, getCloudinaryDownloadUrl, sanitizeMediaUrl } from '../lib/cloudinary';
 import './auth.css';
 
@@ -595,11 +597,14 @@ export default function Freelancers({ user, onStart }) {
 
 
 function CreateFreelancerModal({ user, onClose, onComplete }) {
+  const [step, setStep] = useState('select_role'); // 'select_role' | 'freelancer' | 'client'
+
   const safeName = (user?.user_metadata?.name || user?.user_metadata?.full_name || '');
   const splitName = safeName.split(' ');
   const defaultNom = splitName[0] || '';
   const defaultPrenom = splitName.slice(1).join(' ') || '';
 
+  // État du formulaire Freelancer
   const [formData, setFormData] = useState({
     nom: defaultNom,
     prenom: defaultPrenom,
@@ -621,16 +626,33 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     description: '',
     annees_experience: ''
   });
+
+  // État du formulaire Client
+  const [clientForm, setClientForm] = useState({
+    nom: defaultNom,
+    prenom: defaultPrenom,
+    telephone: '',
+    pays: "Côte d'Ivoire",
+    preference_freelance: 'any',
+    description_projet: ''
+  });
+
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [photoProgress, setPhotoProgress] = useState(0);
   const [videoProgress, setVideoProgress] = useState(0);
   const [cvProgress, setCvProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [clientSuccess, setClientSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleClientChange = (e) => {
+    const { name, value } = e.target;
+    setClientForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handlePhotoFileChange = async (e) => {
@@ -702,7 +724,7 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmitFreelancer = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -718,7 +740,7 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
       ].filter(Boolean);
 
       const { error: insertError } = await supabase.from('freelancers').insert({
-        user_id: user.id,
+        user_id: user?.id || null,
         nom: formData.nom,
         prenom: formData.prenom,
         nom_freelancer: formData.nom_freelancer,
@@ -750,150 +772,417 @@ function CreateFreelancerModal({ user, onClose, onComplete }) {
     }
   };
 
+  const handleSubmitClient = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: insertError } = await supabase.from('client_requests').insert({
+        user_id: user?.id || null,
+        nom: clientForm.nom,
+        prenom: clientForm.prenom,
+        telephone: clientForm.telephone,
+        description_projet: clientForm.description_projet,
+        pays: clientForm.pays,
+        preference_freelance: clientForm.preference_freelance
+      });
+
+      if (insertError) throw insertError;
+      setClientSuccess(true);
+      setTimeout(() => {
+        onComplete();
+      }, 1500);
+    } catch (err) {
+      console.error("Erreur lors du dépôt de la demande client:", err);
+      setError(err?.message || 'Une erreur est survenue lors de l\'enregistrement.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className="modal fade show d-block"
       tabIndex="-1"
       role="dialog"
-      style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 1050 }}
+      style={{ backgroundColor: 'rgba(38, 33, 92, 0.55)', backdropFilter: 'blur(5px)', zIndex: 1050 }}
       onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
     >
       <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
-        <div className="modal-content border-0 shadow" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+          
+          {/* HEADER DYNAMIQUE */}
           <div className="modal-header border-0 pb-0 px-4 pt-4 d-flex justify-content-between align-items-center">
-            <h5 className="modal-title font-serif fw-bold fs-4 text-title">Créer mon profil Freelancer</h5>
-            <button type="button" className="btn-close" onClick={onClose} aria-label="Fermer" disabled={loading}></button>
+            {step !== 'select_role' ? (
+              <button 
+                type="button" 
+                className="btn btn-sm btn-light rounded-pill px-3 d-flex align-items-center gap-1 shadow-sm"
+                onClick={() => { setStep('select_role'); setError(null); }}
+                disabled={loading}
+              >
+                <i className="bi bi-arrow-left"></i> Retour
+              </button>
+            ) : (
+              <div></div>
+            )}
+
+            <h5 className="modal-title font-serif fw-bold fs-4 text-title text-center flex-grow-1 mb-0 ms-2">
+              {step === 'select_role' && 'Quel est votre objectif ?'}
+              {step === 'freelancer' && 'Créer mon profil Freelancer'}
+              {step === 'client' && 'Publier ma demande de projet'}
+            </h5>
+
+            <button type="button" className="btn-close ms-2" onClick={onClose} aria-label="Fermer" disabled={loading}></button>
           </div>
-          <div className="modal-body py-4 px-4" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-            <form onSubmit={handleSubmit}>
-              <div className="row g-3">
-                {/* Aperçu / Photo et Vidéo de profil & CV */}
-                <div className="col-12 text-center mb-2">
-                  <div className="d-inline-block position-relative">
-                    {formData.video_url ? (
-                      <video src={formData.video_url} autoPlay loop muted playsInline className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #FF7A00' }} />
-                    ) : formData.photo_url ? (
-                      <img src={formData.photo_url} alt="Aperçu" className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid var(--folio-primary)' }} />
-                    ) : (
-                      <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mx-auto" style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}>
-                        <i className="bi bi-camera fs-2"></i>
+
+          <div className="modal-body py-4 px-4" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+            
+            {/* ETAPE 1: SELECTION DU ROLE */}
+            {step === 'select_role' && (
+              <div>
+                <p className="text-center text-muted mb-4 fs-6">
+                  Choisissez une option ci-dessous pour continuer :
+                </p>
+
+                <div className="row g-4 justify-content-center">
+                  {/* CARTE FREELANCER */}
+                  <div className="col-md-6">
+                    <div 
+                      className="card h-100 border-2 border-primary-subtle shadow-sm rounded-4 overflow-hidden"
+                      style={{ cursor: 'pointer', transition: 'all 0.3s ease', backgroundColor: '#FAFAFE' }}
+                      onClick={() => setStep('freelancer')}
+                    >
+                      <div className="position-relative" style={{ height: '180px', overflow: 'hidden' }}>
+                        <img 
+                          src={freelancerImg} 
+                          alt="Je suis un Freelancer" 
+                          className="w-100 h-100" 
+                          style={{ objectFit: 'cover' }} 
+                        />
+                        <span className="badge bg-primary position-absolute top-0 end-0 m-3 px-3 py-2 rounded-pill shadow-sm fs-6">
+                          Indépendant
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  {videoProgress > 0 && videoProgress < 100 && (
-                    <div className="w-100 my-2">
-                      <div className="d-flex justify-content-between small text-title fw-bold mb-1">
-                        <span>Téléversement vidéo sur Cloudinary...</span>
-                        <span>{videoProgress}%</span>
-                      </div>
-                      <div className="progress" style={{ height: '8px' }}>
-                        <div className="progress-bar progress-bar-striped progress-bar-animated bg-warning" style={{ width: `${videoProgress}%` }}></div>
+                      <div className="card-body p-4 text-center d-flex flex-column justify-content-between">
+                        <div>
+                          <h5 className="fw-bold text-title mb-2">Je suis un Freelancer</h5>
+                          <p className="text-muted small mb-3">
+                            Proposez vos services, mettez en avant vos compétences et votre portfolio pour être contacté par des clients et entreprises.
+                          </p>
+                        </div>
+                        <button 
+                          type="button" 
+                          className="btn btn-primary-custom w-100 py-2 rounded-pill fw-bold shadow-sm"
+                          onClick={(e) => { e.stopPropagation(); setStep('freelancer'); }}
+                        >
+                          <i className="bi bi-person-badge me-2"></i>Je suis un Freelancer
+                        </button>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {cvProgress > 0 && cvProgress < 100 && (
-                    <div className="w-100 my-2">
-                      <div className="d-flex justify-content-between small text-title fw-bold mb-1">
-                        <span>Téléversement CV sur Cloudinary...</span>
-                        <span>{cvProgress}%</span>
+                  {/* CARTE CLIENT */}
+                  <div className="col-md-6">
+                    <div 
+                      className="card h-100 border-2 border-info-subtle shadow-sm rounded-4 overflow-hidden"
+                      style={{ cursor: 'pointer', transition: 'all 0.3s ease', backgroundColor: '#FAFAFE' }}
+                      onClick={() => setStep('client')}
+                    >
+                      <div className="position-relative" style={{ height: '180px', overflow: 'hidden' }}>
+                        <img 
+                          src={clientImg} 
+                          alt="Je suis un Client" 
+                          className="w-100 h-100" 
+                          style={{ objectFit: 'cover' }} 
+                        />
+                        <span className="badge bg-info text-dark position-absolute top-0 end-0 m-3 px-3 py-2 rounded-pill shadow-sm fs-6 fw-bold">
+                          Client / Recruteur
+                        </span>
                       </div>
-                      <div className="progress" style={{ height: '8px' }}>
-                        <div className="progress-bar progress-bar-striped progress-bar-animated bg-success" style={{ width: `${cvProgress}%` }}></div>
+                      <div className="card-body p-4 text-center d-flex flex-column justify-content-between">
+                        <div>
+                          <h5 className="fw-bold text-title mb-2">Je suis un Client</h5>
+                          <p className="text-muted small mb-3">
+                            Publiez votre besoin de projet et entrez directement en contact avec les meilleurs freelancers pour vos réalisations.
+                          </p>
+                        </div>
+                        <button 
+                          type="button" 
+                          className="btn btn-info text-white w-100 py-2 rounded-pill fw-bold shadow-sm"
+                          style={{ backgroundColor: '#0284c7', borderColor: '#0284c7' }}
+                          onClick={(e) => { e.stopPropagation(); setStep('client'); }}
+                        >
+                          <i className="bi bi-briefcase me-2"></i>Je suis un Client
+                        </button>
                       </div>
                     </div>
-                  )}
-
-                  <div className="mt-2 d-flex flex-wrap justify-content-center gap-2">
-                    <label className="btn btn-sm btn-outline-custom">
-                      <i className="bi bi-image me-1"></i>Photo de profil
-                      <input type="file" accept="image/*" className="d-none" onChange={handlePhotoFileChange} disabled={loading || uploadingMedia} />
-                    </label>
-                    <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
-                      <i className="bi bi-camera-reels me-1"></i>Vidéo de profil (ProMax)
-                      <input type="file" accept="video/*" className="d-none" onChange={handleVideoFileChange} disabled={loading || uploadingMedia} />
-                    </label>
-                    <label className="btn btn-sm btn-outline-success">
-                      <i className="bi bi-file-earmark-pdf me-1"></i>Ajouter son CV (ProMax)
-                      <input type="file" accept=".pdf,.doc,.docx" className="d-none" onChange={handleCvFileChange} disabled={loading || uploadingMedia} />
-                    </label>
                   </div>
-                  {formData.cv_url && <small className="text-success d-block mt-1"><i className="bi bi-check-circle me-1"></i>CV joint avec succès (Stocké sur Cloudinary)</small>}
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Nom</label>
-                  <input type="text" name="nom" className="form-control" value={formData.nom} onChange={handleChange} required disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Prénom</label>
-                  <input type="text" name="prenom" className="form-control" value={formData.prenom} onChange={handleChange} required disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Nom du profil / Nom de freelancer</label>
-                  <input type="text" name="nom_freelancer" className="form-control" placeholder="ex: John Dev" value={formData.nom_freelancer} onChange={handleChange} required disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small">Activité / Spécialité</label>
-                  <input type="text" name="activite" className="form-control" placeholder="ex: Développeur Web Fullstack" value={formData.activite} onChange={handleChange} required disabled={loading} />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label text-body-custom small">Âge</label>
-                  <input type="number" name="age" className="form-control" value={formData.age} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label text-body-custom small">Date de naissance</label>
-                  <input type="date" name="date_naissance" className="form-control" value={formData.date_naissance} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label text-body-custom small">Années d'expérience</label>
-                  <input type="number" name="annees_experience" className="form-control" value={formData.annees_experience} onChange={handleChange} disabled={loading} />
-                </div>
-
-                {/* Moyens de contact */}
-                <div className="col-12 mt-4"><h6 className="font-serif fw-bold text-title mb-0"><i className="bi bi-chat-dots me-2 text-primary"></i>Contacts & Portfolio</h6></div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small"><i className="bi bi-whatsapp text-success me-1"></i>Numéro WhatsApp</label>
-                  <input type="text" name="whatsapp" className="form-control" placeholder="+22507000000" value={formData.whatsapp} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small"><i className="bi bi-globe text-primary me-1"></i>Portfolio / Site web</label>
-                  <input type="url" name="site_web" className="form-control" placeholder="https://mon-portfolio.com" value={formData.site_web} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small"><i className="bi bi-telegram text-info me-1"></i>Telegram (Pseudo ou lien)</label>
-                  <input type="text" name="telegram" className="form-control" placeholder="@mon_telegram" value={formData.telegram} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small"><i className="bi bi-facebook text-primary me-1"></i>Facebook (Lien)</label>
-                  <input type="url" name="facebook" className="form-control" placeholder="https://facebook.com/monprofil" value={formData.facebook} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small"><i className="bi bi-instagram text-danger me-1"></i>Instagram (Lien ou pseudo)</label>
-                  <input type="text" name="instagram" className="form-control" placeholder="@mon_insta" value={formData.instagram} onChange={handleChange} disabled={loading} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label text-body-custom small"><i className="bi bi-linkedin text-primary me-1"></i>LinkedIn (Lien)</label>
-                  <input type="url" name="linkedin" className="form-control" placeholder="https://linkedin.com/in/monprofil" value={formData.linkedin} onChange={handleChange} disabled={loading} />
-                </div>
-
-                <div className="col-12 mt-3">
-                  <label className="form-label text-body-custom small">Description</label>
-                  <textarea name="description" className="form-control" rows="4" placeholder="Décris tes services, compétences et propositions de valeur..." value={formData.description} onChange={handleChange} required disabled={loading}></textarea>
                 </div>
               </div>
+            )}
 
-              {error && (
-                <div className="alert alert-danger mt-3 py-2 px-3 mb-0" style={{ fontSize: '0.85rem', borderRadius: '10px' }}>
-                  <i className="bi bi-exclamation-triangle me-2"></i>{error}
+            {/* ETAPE 2: FORMULAIRE CLIENT */}
+            {step === 'client' && (
+              <div>
+                {clientSuccess ? (
+                  <div className="text-center py-5">
+                    <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-success text-white mb-3" style={{ width: '70px', height: '70px' }}>
+                      <i className="bi bi-check-lg fs-1"></i>
+                    </div>
+                    <h4 className="fw-bold text-success mb-2">Demande publiée avec succès !</h4>
+                    <p className="text-muted">Votre projet est maintenant visible par les freelancers et dans le tableau de bord.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitClient}>
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <label className="form-label text-body-custom small fw-bold">Nom *</label>
+                        <input 
+                          type="text" 
+                          name="nom" 
+                          className="form-control" 
+                          placeholder="Votre nom" 
+                          value={clientForm.nom} 
+                          onChange={handleClientChange} 
+                          required 
+                          disabled={loading} 
+                        />
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label text-body-custom small fw-bold">Prénom *</label>
+                        <input 
+                          type="text" 
+                          name="prenom" 
+                          className="form-control" 
+                          placeholder="Votre prénom" 
+                          value={clientForm.prenom} 
+                          onChange={handleClientChange} 
+                          required 
+                          disabled={loading} 
+                        />
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label text-body-custom small fw-bold">
+                          <i className="bi bi-telephone text-primary me-1"></i>Téléphone (WhatsApp ou Telegram) *
+                        </label>
+                        <input 
+                          type="text" 
+                          name="telephone" 
+                          className="form-control" 
+                          placeholder="+225 0700000000 ou @pseudo" 
+                          value={clientForm.telephone} 
+                          onChange={handleClientChange} 
+                          required 
+                          disabled={loading} 
+                        />
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label text-body-custom small fw-bold">
+                          <i className="bi bi-geo-alt text-danger me-1"></i>Pays *
+                        </label>
+                        <input 
+                          type="text" 
+                          name="pays" 
+                          className="form-control" 
+                          placeholder="Ex: Côte d'Ivoire, Sénégal, France..." 
+                          value={clientForm.pays} 
+                          onChange={handleClientChange} 
+                          required 
+                          disabled={loading} 
+                        />
+                      </div>
+
+                      <div className="col-12">
+                        <label className="form-label text-body-custom small fw-bold">
+                          Préférence de localisation du Freelancer *
+                        </label>
+                        <select 
+                          name="preference_freelance" 
+                          className="form-select" 
+                          value={clientForm.preference_freelance} 
+                          onChange={handleClientChange}
+                          disabled={loading}
+                        >
+                          <option value="any">N'importe quel (Indifférent)</option>
+                          <option value="local">Freelancer Local (dans mon pays)</option>
+                          <option value="externe">Freelancer Externe (International / Remote)</option>
+                        </select>
+                      </div>
+
+                      <div className="col-12">
+                        <label className="form-label text-body-custom small fw-bold">
+                          Description de votre projet / besoin *
+                        </label>
+                        <textarea 
+                          name="description_projet" 
+                          className="form-control" 
+                          rows="5" 
+                          placeholder="Décrivez votre besoin en détail : objectifs, compétences recherchées, budget estimé, délais..." 
+                          value={clientForm.description_projet} 
+                          onChange={handleClientChange} 
+                          required 
+                          disabled={loading}
+                        ></textarea>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <div className="alert alert-danger mt-3 py-2 px-3 mb-0" style={{ fontSize: '0.85rem', borderRadius: '10px' }}>
+                        <i className="bi bi-exclamation-triangle me-2"></i>{error}
+                      </div>
+                    )}
+
+                    <button 
+                      type="submit" 
+                      className="btn btn-info text-white w-100 py-2 mt-4 fw-bold shadow-sm" 
+                      style={{ backgroundColor: '#0284c7', borderColor: '#0284c7' }}
+                      disabled={loading}
+                    >
+                      {loading ? <span className="spinner-border spinner-border-sm me-2" role="status"></span> : <i className="bi bi-send me-2"></i>}
+                      Publier ma demande de projet
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* ETAPE 3: FORMULAIRE FREELANCER */}
+            {step === 'freelancer' && (
+              <form onSubmit={handleSubmitFreelancer}>
+                <div className="row g-3">
+                  {/* Aperçu / Photo et Vidéo de profil & CV */}
+                  <div className="col-12 text-center mb-2">
+                    <div className="d-inline-block position-relative">
+                      {formData.video_url ? (
+                        <video src={formData.video_url} autoPlay loop muted playsInline className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid #FF7A00' }} />
+                      ) : formData.photo_url ? (
+                        <img src={formData.photo_url} alt="Aperçu" className="rounded-circle shadow-sm" style={{ width: '90px', height: '90px', objectFit: 'cover', border: '3px solid var(--folio-primary)' }} />
+                      ) : (
+                        <div className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mx-auto" style={{ width: '90px', height: '90px', backgroundColor: '#EEEDFE', color: 'var(--folio-primary)' }}>
+                          <i className="bi bi-camera fs-2"></i>
+                        </div>
+                      )}
+                    </div>
+                    {videoProgress > 0 && videoProgress < 100 && (
+                      <div className="w-100 my-2">
+                        <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                          <span>Téléversement vidéo sur Cloudinary...</span>
+                          <span>{videoProgress}%</span>
+                        </div>
+                        <div className="progress" style={{ height: '8px' }}>
+                          <div className="progress-bar progress-bar-striped progress-bar-animated bg-warning" style={{ width: `${videoProgress}%` }}></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {cvProgress > 0 && cvProgress < 100 && (
+                      <div className="w-100 my-2">
+                        <div className="d-flex justify-content-between small text-title fw-bold mb-1">
+                          <span>Téléversement CV sur Cloudinary...</span>
+                          <span>{cvProgress}%</span>
+                        </div>
+                        <div className="progress" style={{ height: '8px' }}>
+                          <div className="progress-bar progress-bar-striped progress-bar-animated bg-success" style={{ width: `${cvProgress}%` }}></div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-2 d-flex flex-wrap justify-content-center gap-2">
+                      <label className="btn btn-sm btn-outline-custom">
+                        <i className="bi bi-image me-1"></i>Photo de profil
+                        <input type="file" accept="image/*" className="d-none" onChange={handlePhotoFileChange} disabled={loading || uploadingMedia} />
+                      </label>
+                      <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
+                        <i className="bi bi-camera-reels me-1"></i>Vidéo de profil (ProMax)
+                        <input type="file" accept="video/*" className="d-none" onChange={handleVideoFileChange} disabled={loading || uploadingMedia} />
+                      </label>
+                      <label className="btn btn-sm btn-outline-success">
+                        <i className="bi bi-file-earmark-pdf me-1"></i>Ajouter son CV (ProMax)
+                        <input type="file" accept=".pdf,.doc,.docx" className="d-none" onChange={handleCvFileChange} disabled={loading || uploadingMedia} />
+                      </label>
+                    </div>
+                    {formData.cv_url && <small className="text-success d-block mt-1"><i className="bi bi-check-circle me-1"></i>CV joint avec succès (Stocké sur Cloudinary)</small>}
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small">Nom</label>
+                    <input type="text" name="nom" className="form-control" value={formData.nom} onChange={handleChange} required disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small">Prénom</label>
+                    <input type="text" name="prenom" className="form-control" value={formData.prenom} onChange={handleChange} required disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small">Nom du profil / Nom de freelancer</label>
+                    <input type="text" name="nom_freelancer" className="form-control" placeholder="ex: John Dev" value={formData.nom_freelancer} onChange={handleChange} required disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small">Activité / Spécialité</label>
+                    <input type="text" name="activite" className="form-control" placeholder="ex: Développeur Web Fullstack" value={formData.activite} onChange={handleChange} required disabled={loading} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label text-body-custom small">Âge</label>
+                    <input type="number" name="age" className="form-control" value={formData.age} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label text-body-custom small">Date de naissance</label>
+                    <input type="date" name="date_naissance" className="form-control" value={formData.date_naissance} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label text-body-custom small">Années d'expérience</label>
+                    <input type="number" name="annees_experience" className="form-control" value={formData.annees_experience} onChange={handleChange} disabled={loading} />
+                  </div>
+
+                  {/* Moyens de contact */}
+                  <div className="col-12 mt-4"><h6 className="font-serif fw-bold text-title mb-0"><i className="bi bi-chat-dots me-2 text-primary"></i>Contacts & Portfolio</h6></div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small"><i className="bi bi-whatsapp text-success me-1"></i>Numéro WhatsApp</label>
+                    <input type="text" name="whatsapp" className="form-control" placeholder="+22507000000" value={formData.whatsapp} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small"><i className="bi bi-globe text-primary me-1"></i>Portfolio / Site web</label>
+                    <input type="url" name="site_web" className="form-control" placeholder="https://mon-portfolio.com" value={formData.site_web} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small"><i className="bi bi-telegram text-info me-1"></i>Telegram (Pseudo ou lien)</label>
+                    <input type="text" name="telegram" className="form-control" placeholder="@mon_telegram" value={formData.telegram} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small"><i className="bi bi-facebook text-primary me-1"></i>Facebook (Lien)</label>
+                    <input type="url" name="facebook" className="form-control" placeholder="https://facebook.com/monprofil" value={formData.facebook} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small"><i className="bi bi-instagram text-danger me-1"></i>Instagram (Lien ou pseudo)</label>
+                    <input type="text" name="instagram" className="form-control" placeholder="@mon_insta" value={formData.instagram} onChange={handleChange} disabled={loading} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label text-body-custom small"><i className="bi bi-linkedin text-primary me-1"></i>LinkedIn (Lien)</label>
+                    <input type="url" name="linkedin" className="form-control" placeholder="https://linkedin.com/in/monprofil" value={formData.linkedin} onChange={handleChange} disabled={loading} />
+                  </div>
+
+                  <div className="col-12 mt-3">
+                    <label className="form-label text-body-custom small">Description</label>
+                    <textarea name="description" className="form-control" rows="4" placeholder="Décris tes services, compétences et propositions de valeur..." value={formData.description} onChange={handleChange} required disabled={loading}></textarea>
+                  </div>
                 </div>
-              )}
 
-              <button type="submit" className="btn btn-primary-custom w-100 py-2 mt-4" disabled={loading || uploadingMedia || (videoProgress > 0 && videoProgress < 100) || (cvProgress > 0 && cvProgress < 100)}>
-                {loading ? <span className="spinner-border spinner-border-sm me-2" role="status"></span> : <i className="bi bi-upload me-2"></i>}
-                {uploadingMedia ? 'Téléversement des fichiers...' : 'Publier le profil'}
-              </button>
-            </form>
+                {error && (
+                  <div className="alert alert-danger mt-3 py-2 px-3 mb-0" style={{ fontSize: '0.85rem', borderRadius: '10px' }}>
+                    <i className="bi bi-exclamation-triangle me-2"></i>{error}
+                  </div>
+                )}
+
+                <button type="submit" className="btn btn-primary-custom w-100 py-2 mt-4" disabled={loading || uploadingMedia || (videoProgress > 0 && videoProgress < 100) || (cvProgress > 0 && cvProgress < 100)}>
+                  {loading ? <span className="spinner-border spinner-border-sm me-2" role="status"></span> : <i className="bi bi-upload me-2"></i>}
+                  {uploadingMedia ? 'Téléversement des fichiers...' : 'Publier le profil'}
+                </button>
+              </form>
+            )}
+
           </div>
         </div>
       </div>

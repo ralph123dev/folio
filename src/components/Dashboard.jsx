@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import verifieBadge from '../assets/verifie.png';
 import orangeBadge from '../assets/orange.png';
 import { uploadToCloudinary } from '../lib/cloudinary';
+import { analyzePortfolioWithGemini, AVAILABLE_MODELS } from '../lib/gemini';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
 
@@ -18,6 +19,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showSearchDetectionModal, setShowSearchDetectionModal] = useState(false);
   const [showBlogMaxModal, setShowBlogMaxModal] = useState(false);
+  const [showAiAnalysisModal, setShowAiAnalysisModal] = useState(false);
   const [showBoostContactsSheet, setShowBoostContactsSheet] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [visits, setVisits] = useState([]);
@@ -172,10 +174,68 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     }));
   }, [visits]);
 
-  const [chartMetric, setMetric] = useState('visits'); // 'visits' | 'stars'
+  const [chartMetric, setMetric] = useState('visits'); // 'visits' | 'stars' | 'clients'
   const [freelancerProfiles, setFreelancerProfiles] = useState([]);
   const [selectedProfileId, setSelectedProfileId] = useState('all');
   const [ratingsList, setRatingsList] = useState([]);
+  const [clientRequests, setClientRequests] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+
+  // Charger les demandes clients en temps réel
+  useEffect(() => {
+    let mounted = true;
+    const fetchClientRequests = async () => {
+      const { data } = await supabase
+        .from('client_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (mounted && data) {
+        setClientRequests(data);
+      }
+    };
+
+    fetchClientRequests();
+
+    const channel = supabase
+      .channel('client_requests_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_requests' }, () => {
+        fetchClientRequests();
+      })
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const getVisitorKey = (user) => {
+    if (user?.id) return `user_${user.id}`;
+    let vk = localStorage.getItem('folio_visitor_key');
+    if (!vk) {
+      vk = 'visitor_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      localStorage.setItem('folio_visitor_key', vk);
+    }
+    return vk;
+  };
+
+  const handleOpenClientModal = async (client) => {
+    setSelectedClient(client);
+    try {
+      const visitorKey = getVisitorKey(userData);
+      const { data: newViewsTotal, error } = await supabase.rpc('record_client_request_view', {
+        p_request_id: client.id,
+        p_viewer_key: visitorKey,
+      });
+
+      if (!error && typeof newViewsTotal === 'number') {
+        setClientRequests(prev => prev.map(c => c.id === client.id ? { ...c, views_count: newViewsTotal } : c));
+        setSelectedClient(prev => prev && prev.id === client.id ? { ...prev, views_count: newViewsTotal } : prev);
+      }
+    } catch (err) {
+      console.error("Erreur lors de l'enregistrement de la vue client:", err);
+    }
+  };
 
   // Auto-sync des paiements en attente en arrière-plan
   useEffect(() => {
@@ -479,6 +539,11 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                     <i className="bi bi-lightning-charge me-2"></i>Optimiser mon Portfolio
                   </button>
                 </li>
+                <li>
+                  <button className="dropdown-item py-2 fw-medium" style={{ color: '#8b5cf6' }} onClick={() => setShowAiAnalysisModal(true)}>
+                    <i className="bi bi-magic me-2" style={{ color: '#8b5cf6' }}></i>Analyser par IA (Gemini)
+                  </button>
+                </li>
                 <li><hr className="dropdown-divider" /></li>
                 {isProMax && (
                   <li>
@@ -628,6 +693,13 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                     >
                       <i className="bi bi-star-fill text-warning me-1"></i>Étoiles reçues ⭐
                     </button>
+                    <button 
+                      type="button" 
+                      className={`btn btn-sm ${chartMetric === 'clients' ? 'btn-primary-custom' : 'btn-outline-custom'}`}
+                      onClick={() => setMetric('clients')}
+                    >
+                      <i className="bi bi-briefcase-fill text-info me-1"></i>Demandes Clients 💼
+                    </button>
                   </div>
                 </div>
 
@@ -652,47 +724,114 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                 <span className="badge rounded-pill" style={{ backgroundColor: '#EEEDFE', color: 'var(--folio-primary)', fontSize: '0.8rem' }}>
                   {chartMetric === 'visits' ? (
                     `${visits.length} visite${visits.length > 1 ? 's' : ''} cette semaine`
-                  ) : (
+                  ) : chartMetric === 'stars' ? (
                     `${filteredRatings.length} avis / étoile${filteredRatings.length > 1 ? 's' : ''} en temps réel`
+                  ) : (
+                    `${clientRequests.length} demande${clientRequests.length > 1 ? 's' : ''} client${clientRequests.length > 1 ? 's' : ''}`
                   )}
                 </span>
               </div>
 
-              <div className="visitors-chart rounded-3 p-3" style={{ backgroundColor: '#FAFAFE', border: '1px solid rgba(38, 33, 92, 0.08)' }}>
-                <svg viewBox="0 0 600 120" className="w-100" role="img" aria-label="Courbe du tableau de bord">
-                  <polyline points={chartPoints} fill="none" stroke={chartMetric === 'stars' ? '#f59e0b' : 'var(--folio-primary)'} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  {currentChartData.map((day, index) => (
-                    <circle 
-                      key={day.label} 
-                      cx={index * 100} 
-                      cy={90 - (day.value / Math.max(...currentChartData.map((item) => item.value), 1)) * 70} 
-                      r="5" 
-                      fill="white" 
-                      stroke={chartMetric === 'stars' ? '#f59e0b' : 'var(--folio-primary)'} 
-                      strokeWidth="3" 
-                    />
-                  ))}
-                </svg>
-                <div className="d-flex justify-content-between text-muted small px-1 mt-2">
-                  {currentChartData.map((day) => (
-                    <div key={day.label} className="text-center">
-                      <span className="d-block fw-bold" style={{ fontSize: '0.75rem' }}>{day.label}</span>
-                      <span className="d-block text-muted" style={{ fontSize: '0.7rem' }}>
-                        {chartMetric === 'stars' ? (day.value > 0 ? `+${day.value} ⭐` : '0') : day.value}
-                      </span>
+              {chartMetric === 'clients' ? (
+                <div className="rounded-3 p-3" style={{ backgroundColor: '#FAFAFE', border: '1px solid rgba(38, 33, 92, 0.08)' }}>
+                  <h6 className="fw-bold font-serif mb-3 text-title d-flex align-items-center justify-content-between">
+                    <span><i className="bi bi-person-workspace text-primary me-2"></i>Clients ayant postulé pour des projets</span>
+                    <span className="badge bg-primary rounded-pill small">{clientRequests.length} au total</span>
+                  </h6>
+
+                  {clientRequests.length === 0 ? (
+                    <p className="text-center text-muted small py-4 mb-0">
+                      <i className="bi bi-folder2-open d-block fs-3 mb-2 opacity-50"></i>
+                      Aucune demande client pour le moment. Les projets publiés par les clients apparaîtront ici.
+                    </p>
+                  ) : (
+                    <div className="d-flex flex-column gap-2" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                      {clientRequests.map((client) => (
+                        <div 
+                          key={client.id}
+                          className="p-3 bg-white rounded-3 shadow-sm d-flex flex-wrap align-items-center justify-content-between border"
+                          style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                          onClick={() => handleOpenClientModal(client)}
+                        >
+                          <div className="d-flex align-items-center gap-3">
+                            <div className="rounded-circle text-info d-flex align-items-center justify-content-center fw-bold fs-5" style={{ width: '44px', height: '44px', backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+                              {client.prenom ? client.prenom.charAt(0).toUpperCase() : 'C'}
+                            </div>
+                            <div>
+                              <button 
+                                type="button" 
+                                className="btn btn-link p-0 fw-bold text-dark text-decoration-none text-start fs-6 mb-0"
+                                onClick={(e) => { e.stopPropagation(); handleOpenClientModal(client); }}
+                              >
+                                {client.prenom} {client.nom}
+                              </button>
+                              <div className="d-flex flex-wrap align-items-center gap-2 text-muted small mt-1" style={{ fontSize: '0.78rem' }}>
+                                <span><i className="bi bi-geo-alt me-1 text-danger"></i>{client.pays}</span>
+                                <span>•</span>
+                                <span className="badge text-bg-light border">{client.preference_freelance === 'local' ? 'Freelancer Local' : client.preference_freelance === 'externe' ? 'Freelancer Externe' : 'Tout profil'}</span>
+                                <span>•</span>
+                                <span className="badge text-bg-primary-subtle text-primary border border-primary-subtle fw-semibold">
+                                  <i className="bi bi-eye me-1"></i>{client.views_count || 0} vue{(client.views_count || 0) > 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+                            <span className="text-muted small" style={{ fontSize: '0.75rem' }}>
+                              {new Date(client.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                            </span>
+                            <button 
+                              type="button" 
+                              className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-medium"
+                              style={{ fontSize: '0.78rem' }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenClientModal(client); }}
+                            >
+                              <i className="bi bi-eye me-1"></i>Détails
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-                {chartMetric === 'visits' && !visits.length && (
-                  <p className="text-center text-body-custom small mt-3 mb-0">Les visites apparaîtront ici dès qu'un visiteur ouvrira ton portfolio.</p>
-                )}
-                {chartMetric === 'stars' && !filteredRatings.length && (
-                  <p className="text-center text-body-custom small mt-3 mb-0">
-                    <i className="bi bi-star me-1 text-warning"></i>
-                    Aucune étoile reçue pour le moment sur {selectedProfileId === 'all' ? 'tes profils' : 'ce profil'}. Tes étoiles apparaîtront en temps réel dès qu'un utilisateur votera !
-                  </p>
-                )}
-              </div>
+              ) : (
+                <div className="visitors-chart rounded-3 p-3" style={{ backgroundColor: '#FAFAFE', border: '1px solid rgba(38, 33, 92, 0.08)' }}>
+                  <svg viewBox="0 0 600 120" className="w-100" role="img" aria-label="Courbe du tableau de bord">
+                    <polyline points={chartPoints} fill="none" stroke={chartMetric === 'stars' ? '#f59e0b' : 'var(--folio-primary)'} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                    {currentChartData.map((day, index) => (
+                      <circle 
+                        key={day.label} 
+                        cx={index * 100} 
+                        cy={90 - (day.value / Math.max(...currentChartData.map((item) => item.value), 1)) * 70} 
+                        r="5" 
+                        fill="white" 
+                        stroke={chartMetric === 'stars' ? '#f59e0b' : 'var(--folio-primary)'} 
+                        strokeWidth="3" 
+                      />
+                    ))}
+                  </svg>
+                  <div className="d-flex justify-content-between text-muted small px-1 mt-2">
+                    {currentChartData.map((day) => (
+                      <div key={day.label} className="text-center">
+                        <span className="d-block fw-bold" style={{ fontSize: '0.75rem' }}>{day.label}</span>
+                        <span className="d-block text-muted" style={{ fontSize: '0.7rem' }}>
+                          {chartMetric === 'stars' ? (day.value > 0 ? `+${day.value} ⭐` : '0') : day.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {chartMetric === 'visits' && !visits.length && (
+                    <p className="text-center text-body-custom small mt-3 mb-0">Les visites apparaîtront ici dès qu'un visiteur ouvrira ton portfolio.</p>
+                  )}
+                  {chartMetric === 'stars' && !filteredRatings.length && (
+                    <p className="text-center text-body-custom small mt-3 mb-0">
+                      <i className="bi bi-star me-1 text-warning"></i>
+                      Aucune étoile reçue pour le moment sur {selectedProfileId === 'all' ? 'tes profils' : 'ce profil'}. Tes étoiles apparaîtront en temps réel dès qu'un utilisateur votera !
+                    </p>
+                  )}
+                </div>
+              )}
               {boostContacts.length > 0 && (
                 <>
                   <div className="boost-contacts-desktop">
@@ -834,10 +973,18 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </div>
 
                   <button 
-                    className="btn btn-outline-custom btn-sm w-100 py-1.5" 
+                    className="btn btn-outline-custom btn-sm w-100 py-1.5 mb-2" 
                     onClick={() => setShowOptimModal(true)}
                   >
                     <i className="bi bi-pencil-square me-1"></i>Modifier le profil
+                  </button>
+
+                  <button 
+                    className="btn btn-sm w-100 py-1.5 text-white" 
+                    style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }}
+                    onClick={() => setShowAiAnalysisModal(true)}
+                  >
+                    <i className="bi bi-magic me-1"></i>Analyser par IA
                   </button>
                 </div>
               )}
@@ -884,12 +1031,130 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
         />
       )}
 
+      {/* Modal d'analyse IA Gemini */}
+      {showAiAnalysisModal && (
+        <AiAnalysisModal
+          portfolioUrl={portfolioUrl}
+          profileData={profileData}
+          userData={userData}
+          onClose={() => setShowAiAnalysisModal(false)}
+        />
+      )}
+
       {showMyProfilesModal && (
         <MyProfilesModal
           userId={userData.id}
           userName={userData.nom_complet}
           onClose={() => setShowMyProfilesModal(false)}
         />
+      )}
+
+      {/* Modal de détail d'un client */}
+      {selectedClient && (
+        <div 
+          className="modal fade show d-block" 
+          tabIndex="-1" 
+          role="dialog" 
+          style={{ backgroundColor: 'rgba(38, 33, 92, 0.55)', backdropFilter: 'blur(5px)', zIndex: 1060 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedClient(null); }}
+        >
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+              <div className="modal-header border-0 bg-light px-4 py-3">
+                <h5 className="modal-title font-serif fw-bold text-title mb-0">
+                  <i className="bi bi-person-vcard text-primary me-2"></i>
+                  Détails de la demande client
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setSelectedClient(null)}></button>
+              </div>
+
+              <div className="modal-body p-4">
+                <div className="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style={{ backgroundColor: '#F4F4FD' }}>
+                  <div className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4 shadow-sm" style={{ width: '60px', height: '60px', backgroundColor: 'var(--folio-primary)' }}>
+                    {selectedClient.prenom ? selectedClient.prenom.charAt(0).toUpperCase() : 'C'}
+                  </div>
+                  <div>
+                    <h4 className="fw-bold text-dark mb-1">{selectedClient.prenom} {selectedClient.nom}</h4>
+                    <div className="d-flex flex-wrap align-items-center gap-2 text-muted small">
+                      <span><i className="bi bi-geo-alt-fill text-danger me-1"></i>{selectedClient.pays}</span>
+                      <span>•</span>
+                      <span><i className="bi bi-clock me-1"></i>Publié le {new Date(selectedClient.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>•</span>
+                      <span className="badge bg-primary text-white rounded-pill px-2.5 py-1">
+                        <i className="bi bi-eye-fill me-1"></i>{selectedClient.views_count || 0} vue{(selectedClient.views_count || 0) > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <div className="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                      <label className="text-muted small fw-bold d-block mb-1">
+                        <i className="bi bi-telephone-fill text-success me-1"></i>Téléphone / WhatsApp / Telegram
+                      </label>
+                      <div className="d-flex flex-column gap-2 mt-2">
+                        <span className="fw-bold text-dark fs-6">{selectedClient.telephone}</span>
+                        <div className="d-flex flex-wrap gap-2">
+                          <a 
+                            href={`https://wa.me/${selectedClient.telephone.replace(/[^0-9]/g, '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1"
+                          >
+                            <i className="bi bi-whatsapp"></i> WhatsApp
+                          </a>
+                          <a 
+                            href={selectedClient.telephone.startsWith('http') ? selectedClient.telephone : `https://t.me/${selectedClient.telephone.replace('@', '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="btn btn-sm btn-info text-white rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1"
+                          >
+                            <i className="bi bi-telegram"></i> Telegram
+                          </a>
+                          <a 
+                            href={`tel:${selectedClient.telephone.replace(/[^0-9+]/g, '')}`} 
+                            className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1"
+                          >
+                            <i className="bi bi-telephone"></i> Appeler
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <div className="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                      <label className="text-muted small fw-bold d-block mb-1">
+                        <i className="bi bi-geo text-primary me-1"></i>Préférence Freelancer
+                      </label>
+                      <div className="mt-2">
+                        <span className="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-2 rounded-pill fw-bold">
+                          {selectedClient.preference_freelance === 'local' ? 'Freelancer Local (dans son pays)' : selectedClient.preference_freelance === 'externe' ? 'Freelancer Externe (Remote)' : 'N\'importe quel profil (Indifférent)'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 border rounded-3 bg-white shadow-sm">
+                  <label className="text-muted small fw-bold d-block mb-2">
+                    <i className="bi bi-file-text text-warning me-1"></i>Description complète du projet
+                  </label>
+                  <p className="text-dark mb-0" style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                    {selectedClient.description_projet}
+                  </p>
+                </div>
+              </div>
+
+              <div className="modal-footer border-0 bg-light px-4 py-3">
+                <button type="button" className="btn btn-secondary rounded-pill px-4 fw-medium" onClick={() => setSelectedClient(null)}>
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showVerificationModal && (
@@ -1276,9 +1541,9 @@ function VerificationModal({ userData, profileData, onRefreshProfile, onOpenRech
   MODAL DE RECHARGE — Paiement SasPay Mobile Money
 ─────────────────────────────────────────────────────────────────── */
 const PACKS = [
-  { id: 'test',    label: 'Compte test', title: 'Recharge de test', desc: 'Accès de test aux fonctionnalités premium', amount: 1700 },
-  { id: 'starter', label: 'Starter', title: 'Optimisation SEO & Clics', desc: 'SEO portfolio et traqueur de clics', amount: 3500 },
-  { id: 'pro',     label: 'Pro',     title: 'Boost Réseaux & Contacts', desc: 'Recommandations et prospection',     amount: 7500 },
+  { id: 'test',    label: 'Mode Débutant', title: 'Mode Débutant', desc: 'Accès de test aux fonctionnalités premium', amount: 1500 },
+  { id: 'starter', label: 'Mode Starter', title: 'Mode Starter', desc: 'SEO portfolio et traqueur de clics', amount: 2500 },
+  { id: 'pro',     label: 'Mode Boost', title: 'Mode Boost', desc: 'Recommandations et prospection',     amount: 10000 },
 ];
 
 const FALLBACK_PAYMENT_COUNTRIES = [
@@ -3077,6 +3342,295 @@ function ProMaxModal({ userData, profileData, onRefreshProfile, onOpenRecharge, 
               </>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   MODAL ANALYSE IA (GEMINI) — Audit SEO & Génération Code Head
+─────────────────────────────────────────────────────────────────── */
+function AiAnalysisModal({ portfolioUrl, profileData, userData, onClose }) {
+  const defaultUrl = profileData?.portfolio_url || portfolioUrl || '';
+  const [urlInput, setUrlInput] = useState(defaultUrl);
+  const [loading, setLoading] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash-lite');
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [pendingModel, setPendingModel] = useState('gemini-3.5-flash-lite');
+  const isOverloadedError = error && (error.toLowerCase().includes('high demand') || error.toLowerCase().includes('overload') || error.toLowerCase().includes('très sollicité'));
+
+  const handleRunAnalysis = async (modelOverride) => {
+    const modelToUse = modelOverride || selectedModel;
+    if (!urlInput.trim()) {
+      setError("Veuillez saisir l'URL de votre portfolio.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setShowModelPicker(false);
+    try {
+      const res = await analyzePortfolioWithGemini({
+        portfolioUrl: urlInput.trim(),
+        name: userData?.nom_complet || profileData?.nom || 'Freelance',
+        profession: profileData?.metier || profileData?.activite || 'Développeur Web',
+        description: profileData?.description || '',
+        selectedModel: modelToUse,
+      });
+      setAnalysis(res);
+    } catch (err) {
+      console.error("Erreur lors de l'analyse Gemini IA:", err);
+      setError(err?.message || "Impossible d'effectuer l'analyse IA. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (defaultUrl && !analysis && !loading) {
+      handleRunAnalysis();
+    }
+  }, []);
+
+  const handleCopyHead = () => {
+    if (analysis?.headCode) {
+      navigator.clipboard.writeText(analysis.headCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  return (
+    <div
+      className="optim-modal-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
+      style={{ zIndex: 2200 }}
+    >
+      <div className="optim-modal-container modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
+        <div className="p-4 p-md-5" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+          <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
+            <div>
+              <span className="badge rounded-pill text-white px-3 py-1 mb-2 d-inline-flex align-items-center gap-1" style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}>
+                <i className="bi bi-stars"></i> Folio IA
+              </span>
+              <h2 className="font-serif fw-bold text-title mb-1">Analyse SEO & Code Head par IA</h2>
+              <p className="text-body-custom mb-0 small">Obtenez un audit instantané par Gemini IA et générez le code HTML à insérer dans le &lt;head&gt; de votre site.</p>
+            </div>
+            <button type="button" className="btn btn-link p-0 text-muted" onClick={onClose} aria-label="Fermer" disabled={loading}>
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          {/* Formulaire URL & Bouton Actualiser */}
+          <div className="p-3 rounded-3 mb-4" style={{ backgroundColor: '#F8F9FE', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
+            <label className="form-label text-title small fw-bold mb-1">URL de votre portfolio à analyser :</label>
+            <div className="input-group">
+              <span className="input-group-text bg-white text-muted"><i className="bi bi-globe"></i></span>
+              <input
+                type="url"
+                className="form-control"
+                placeholder="https://votreportfolio.com"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="btn text-white px-4 d-flex align-items-center gap-2"
+                style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }}
+                onClick={handleRunAnalysis}
+                disabled={loading}
+              >
+                {loading ? <span className="spinner-border spinner-border-sm" role="status" /> : <i className="bi bi-stars"></i>}
+                {loading ? 'Analyse en cours...' : 'Analyse IA'}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-4">
+              <div className="alert alert-danger py-2 px-3 small d-flex align-items-start gap-2 mb-2">
+                <i className="bi bi-exclamation-triangle-fill mt-0.5 flex-shrink-0"></i>
+                <div className="flex-grow-1">{error}</div>
+              </div>
+              {isOverloadedError ? (
+                <div className="p-3 rounded-3 border" style={{ backgroundColor: '#faf5ff', borderColor: '#8b5cf640' }}>
+                  <p className="small fw-bold text-title mb-2">
+                    <i className="bi bi-cpu me-1" style={{ color: '#8b5cf6' }}></i>
+                    Le modèle IA est très sollicité en ce moment. Choisissez un autre modèle pour relancer l'analyse :
+                  </p>
+                  <div className="d-flex flex-column gap-2 mb-3">
+                    {AVAILABLE_MODELS.filter(m => m.id !== selectedModel).map(m => (
+                      <label key={m.id} className={`d-flex align-items-center gap-2 p-2 rounded-3 border cursor-pointer ${ pendingModel === m.id ? 'border-purple-500' : '' }`} style={{ cursor: 'pointer', borderColor: pendingModel === m.id ? '#8b5cf6' : '#e5e7eb', backgroundColor: pendingModel === m.id ? '#f5f3ff' : 'white' }}>
+                        <input
+                          type="radio"
+                          name="model-picker"
+                          value={m.id}
+                          checked={pendingModel === m.id}
+                          onChange={() => setPendingModel(m.id)}
+                          className="form-check-input mt-0"
+                        />
+                        <div>
+                          <div className="fw-semibold small text-title">{m.label}</div>
+                          <div className="text-muted" style={{ fontSize: '0.75rem' }}>{m.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm text-white w-100"
+                    style={{ backgroundColor: '#8b5cf6' }}
+                    onClick={() => { setSelectedModel(pendingModel); handleRunAnalysis(pendingModel); }}
+                  >
+                    <i className="bi bi-arrow-clockwise me-1"></i>
+                    Relancer avec ce modèle
+                  </button>
+                </div>
+              ) : (
+                <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => handleRunAnalysis()}>Réessayer</button>
+              )}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border mb-3" style={{ width: '3rem', height: '3rem', color: '#8b5cf6' }} role="status">
+                <span className="visually-hidden">Chargement IA...</span>
+              </div>
+              <h5 className="font-serif text-title mb-1">Analyse en cours et attente de résultat...</h5>
+              <p className="text-muted small mb-0">Extraction des balises SEO, vérification de l'ergonomie et génération du code &lt;head&gt;.</p>
+            </div>
+          ) : analysis ? (
+            <div className="ai-analysis-results">
+              {/* Carte Score + Diagnostic */}
+              <div className="row g-3 mb-4">
+                <div className="col-md-4">
+                  <div className="p-4 rounded-4 text-center h-100 d-flex flex-column align-items-center justify-content-center bg-white shadow-sm border" style={{ borderColor: `${getScoreColor(analysis.score)}40` }}>
+                    <p className="small text-muted mb-1 text-uppercase fw-bold" style={{ letterSpacing: '0.05em' }}>Score IA Global</p>
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle my-2 shadow-sm"
+                      style={{
+                        width: '90px', height: '90px',
+                        border: `6px solid ${getScoreColor(analysis.score)}`,
+                        backgroundColor: `${getScoreColor(analysis.score)}10`
+                      }}
+                    >
+                      <span className="fs-2 fw-bold" style={{ color: getScoreColor(analysis.score) }}>{analysis.score}</span>
+                    </div>
+                    <span className="badge px-3 py-1 rounded-pill mt-1" style={{ backgroundColor: `${getScoreColor(analysis.score)}20`, color: getScoreColor(analysis.score) }}>
+                      {analysis.score >= 80 ? 'Excellent SEO' : analysis.score >= 60 ? 'Bonne base' : 'À optimiser'}
+                    </span>
+                  </div>
+                </div>
+                <div className="col-md-8">
+                  <div className="p-4 rounded-4 h-100 bg-white shadow-sm border">
+                    <h5 className="font-serif fw-bold text-title mb-2 d-flex align-items-center gap-2">
+                      <i className="bi bi-robot" style={{ color: '#8b5cf6' }}></i>
+                      <span>Diagnostic de l'IA</span>
+                    </h5>
+                    <p className="text-body-custom mb-0" style={{ fontSize: '0.92rem', lineHeight: '1.6' }}>
+                      {analysis.diagnostic}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Points Forts & Axes d'amélioration */}
+              <div className="row g-3 mb-4">
+                <div className="col-md-6">
+                  <div className="p-3 border rounded-3 h-100 bg-white shadow-sm">
+                    <h6 className="fw-bold text-success mb-3 d-flex align-items-center gap-2" style={{ fontSize: '0.95rem' }}>
+                      <i className="bi bi-check-circle-fill"></i> Forces détectées ({analysis.strengths?.length || 0})
+                    </h6>
+                    <ul className="list-unstyled mb-0 d-flex flex-column gap-2 small text-body-custom">
+                      {analysis.strengths?.map((str, idx) => (
+                        <li key={idx} className="d-flex align-items-start gap-2">
+                          <i className="bi bi-check2 text-success mt-0.5"></i>
+                          <span>{str}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="p-3 border rounded-3 h-100 bg-white shadow-sm">
+                    <h6 className="fw-bold text-warning mb-3 d-flex align-items-center gap-2" style={{ fontSize: '0.95rem' }}>
+                      <i className="bi bi-exclamation-triangle-fill"></i> Points à améliorer ({analysis.weaknesses?.length || 0})
+                    </h6>
+                    <ul className="list-unstyled mb-0 d-flex flex-column gap-2 small text-body-custom">
+                      {analysis.weaknesses?.map((w, idx) => (
+                        <li key={idx} className="d-flex align-items-start gap-2">
+                          <i className="bi bi-dot fs-5 text-warning lh-1"></i>
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommandations Stratégiques */}
+              <div className="p-4 rounded-4 bg-white shadow-sm border mb-4">
+                <h5 className="font-serif fw-bold text-title mb-3 d-flex align-items-center gap-2">
+                  <i className="bi bi-lightbulb-fill text-warning"></i>
+                  <span>Recommandations IA pour Booster votre Trafic</span>
+                </h5>
+                <div className="d-flex flex-column gap-2">
+                  {analysis.recommendations?.map((rec, idx) => (
+                    <div key={idx} className="p-3 rounded-3 d-flex align-items-start gap-3" style={{ backgroundColor: '#F8F9FE', borderLeft: '4px solid #8b5cf6' }}>
+                      <span className="badge rounded-circle d-flex align-items-center justify-content-center text-white" style={{ width: '24px', height: '24px', backgroundColor: '#8b5cf6', flexShrink: 0 }}>
+                        {idx + 1}
+                      </span>
+                      <p className="mb-0 text-title small fw-medium">{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section Code à mettre dans le <head> */}
+              <div className="p-4 rounded-4 bg-dark text-white shadow">
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <div>
+                    <h5 className="font-serif fw-bold mb-1 text-white d-flex align-items-center gap-2">
+                      <i className="bi bi-code-square text-info"></i>
+                      <span>Code HTML à copier dans le &lt;head&gt; de votre site</span>
+                    </h5>
+                    <p className="text-white-50 mb-0 small">Généré sur-mesure par Gemini IA pour optimiser votre référencement Google et réseaux sociaux.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${copied ? 'btn-success' : 'btn-outline-light'} px-3 py-1.5 d-flex align-items-center gap-1.5`}
+                    onClick={handleCopyHead}
+                  >
+                    <i className={`bi ${copied ? 'bi-check-lg' : 'bi-clipboard'}`}></i>
+                    <span>{copied ? 'Code copié !' : 'Copier le code <head>'}</span>
+                  </button>
+                </div>
+
+                <div className="position-relative">
+                  <pre
+                    className="p-3 rounded-3 bg-black text-info small mb-0 font-monospace"
+                    style={{ maxHeight: '250px', overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', border: '1px solid #334155' }}
+                  >
+                    <code>{analysis.headCode}</code>
+                  </pre>
+                </div>
+                <small className="text-white-50 d-block mt-2" style={{ fontSize: '0.75rem' }}>
+                  💡 Collez ces balises directement entre <code>&lt;head&gt;</code> et <code>&lt;/head&gt;</code> dans le fichier index.html de votre portfolio.
+                </small>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
