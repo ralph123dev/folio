@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://accounts.google.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; img-src 'self' data: https: https://res.cloudinary.com; media-src 'self' blob: https: https://res.cloudinary.com; connect-src 'self' https://yasxjodaccjvajttqrlo.supabase.co wss://yasxjodaccjvajttqrlo.supabase.co https://dns.google https://accounts.google.com https://api.cloudinary.com https://*.cloudinary.com; frame-src 'self' https://accounts.google.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; font-src 'self' https://fonts.gstatic.com"
+          "value": "default-src 'self'; script-src 'self' https://accounts.google.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; img-src 'self' data: blob: https:; media-src 'self' blob: data: https:; connect-src 'self' https: wss:; frame-src 'self' https://accounts.google.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; font-src 'self' https://fonts.gstatic.com"
         },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
         { "key": "X-Frame-Options", "value": "DENY" },
