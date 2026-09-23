@@ -27,5 +27,4 @@ contacts.txt
 contacts.txt.gz
 
 .vercel
-.env
 .env*.local
