@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import folioVideo from '../assets/folio.mp4';
+import analysePortfolioImage from '../assets/analyse_site_web.jpg';
+import competitorImage from '../assets/client.jpg';
+import formationImage from '../assets/formation_compléte_freelancer.jpg';
 
 const featureCards = [
   { visual: 'visual-track', icon: 'bi-activity', title: 'Suivi du trafic', description: "Colle un script sur ton portfolio et vois exactement quelles pages et quels projets retiennent l'attention." },
@@ -191,6 +194,65 @@ const Features = ({ user, onStart, onDashboard }) => {
             </div>
           </div>
         </div>
+
+        <section className="pt-5 mt-5 border-top reveal">
+          <div className="text-center mb-5">
+            <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
+              IA Freelancer
+            </p>
+            <h2 className="display-5 font-serif mb-3">L'IA qui t'aide à devenir plus visible et plus rentable</h2>
+            <p className="lead text-body-custom mx-auto mb-0" style={{ maxWidth: '760px' }}>
+              Analyse les portfolios, compare les profils qui marchent et donne des pistes concrètes pour réussir en reproduisant les bonnes pratiques de référence.
+            </p>
+          </div>
+
+          <div className="row g-4">
+            <div className="col-lg-4">
+              <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
+                <img src={analysePortfolioImage} alt="Analyse d'un portfolio" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
+                <div className="p-4">
+                  <h3 className="font-serif h4 mb-3">Analyse de portfolio</h3>
+                  <p className="text-body-custom mb-4">
+                    Notre IA inspecte ton portfolio, identifie ce qui attire l'attention et met en lumière les éléments qui boostent la conversion, les appels et les missions.
+                  </p>
+                  <button type="button" className="btn btn-primary-custom w-100" onClick={user ? onDashboard : onStart}>
+                    {user ? 'Accéder au tableau de bord' : 'Créer mon compte'}
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <div className="col-lg-4">
+              <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
+                <img src={competitorImage} alt="Analyse des performances des autres freelances" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
+                <div className="p-4">
+                  <h3 className="font-serif h4 mb-3">Comprendre les meilleurs profils</h3>
+                  <p className="text-body-custom mb-4">
+                    L'IA analyse les portefeuilles des autres freelances, repère les traces de réussite et propose des leviers précis pour améliorer ton positionnement et accélérer ta croissance.
+                  </p>
+                  <button type="button" className="btn btn-primary-custom w-100" onClick={user ? onDashboard : onStart}>
+                    {user ? 'Voir mon tableau de bord' : 'Se connecter / S’inscrire'}
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <div className="col-lg-4">
+              <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
+                <img src={formationImage} alt="Formation pour devenir freelancer" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
+                <div className="p-4">
+                  <h3 className="font-serif h4 mb-3">IA + formation Freelancer</h3>
+                  <p className="text-body-custom mb-4">
+                    Enrichis tes profils avec l'IA, améliore la qualité de ta présence en ligne et suis une formation pensée pour devenir un freelancer plus crédible, mieux positionné et plus rentable.
+                  </p>
+                  <button type="button" className="btn btn-outline-custom w-100" onClick={() => {}}>
+                    Formation freelancer
+                  </button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
 
         <FeatureCarousel />
 
