@@ -20,15 +20,13 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
   const rawPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'profil_video';
   const uploadPreset = rawPreset.replace(/["'\r\n]/g, '').trim();
 
-  let targetType = resourceType;
-  if (resourceType === 'auto') {
-    if (file.type && file.type.startsWith('video/')) {
-      targetType = 'video';
-    } else if (file.type && file.type.startsWith('image/')) {
-      targetType = 'image';
-    } else {
-      targetType = 'raw';
-    }
+  let targetType = 'auto';
+  if (resourceType && resourceType !== 'auto') {
+    targetType = resourceType;
+  } else if (file.type) {
+    if (file.type.startsWith('video/')) targetType = 'video';
+    else if (file.type.startsWith('image/')) targetType = 'image';
+    else targetType = 'raw';
   }
 
   const formData = new FormData();
@@ -37,55 +35,52 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
 
   const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${targetType}/upload`;
 
-  try {
-    return await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', endpoint);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', endpoint);
 
-      if (xhr.upload && onProgress) {
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent);
-          }
-        };
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      let data = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch (e) {}
+
+      if (xhr.status >= 200 && xhr.status < 300 && data.secure_url) {
+        if (onProgress) onProgress(100);
+        resolve(data.secure_url);
+      } else {
+        const msg = data.error?.message || `Erreur Cloudinary (${xhr.status})`;
+        reject(new Error(msg));
       }
+    };
 
-      xhr.onload = () => {
-        let data = {};
-        try { data = JSON.parse(xhr.responseText); } catch {}
-        if (xhr.status >= 200 && xhr.status < 300) {
-          if (data.secure_url) {
+    xhr.onerror = () => {
+      fetch(endpoint, { method: 'POST', body: formData })
+        .then(async (res) => {
+          const data = await res.json();
+          if (res.ok && data.secure_url) {
             if (onProgress) onProgress(100);
             resolve(data.secure_url);
           } else {
-            reject(new Error(data.error?.message || 'Téléversement échoué sur Cloudinary.'));
+            reject(new Error(data.error?.message || `Erreur Cloudinary (${res.status})`));
           }
-        } else {
-          reject(new Error(data.error?.message || `Erreur Cloudinary (${xhr.status})`));
-        }
-      };
+        })
+        .catch((err) => {
+          reject(new Error('Erreur de téléversement : ' + (err.message || 'Impossible de contacter le serveur.')));
+        });
+    };
 
-      xhr.onerror = () => reject(new Error('XHR_NET_ERROR'));
-      xhr.send(formData);
-    });
-  } catch (err) {
-    if (err.message === 'XHR_NET_ERROR') {
-      try {
-        const resp = await fetch(endpoint, { method: 'POST', body: formData, mode: 'cors' });
-        const data = await resp.json();
-        if (resp.ok && data.secure_url) {
-          if (onProgress) onProgress(100);
-          return data.secure_url;
-        }
-        throw new Error(data.error?.message || `Erreur Cloudinary (${resp.status})`);
-      } catch (fetchErr) {
-        console.error('Échec envoi Cloudinary via fetch:', fetchErr);
-        throw new Error('Connexion vers Cloudinary bloquée. Désactivez votre bloqueur de publicité (AdBlock/Brave) ou vérifiez votre connexion réseau.');
-      }
-    }
-    throw err;
-  }
+    xhr.send(formData);
+  });
 };
 
 /**
