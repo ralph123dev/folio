@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Hero = ({ onStart }) => {
+const Hero = ({ onStart, onFormation }) => {
   return (
     <section className="py-5 mt-4 mt-lg-5 text-center">
       <div className="container">
@@ -9,18 +9,21 @@ const Hero = ({ onStart }) => {
         <div className="row justify-content-center mb-5">
           <div className="col-lg-8">
             <p className="text-uppercase fw-semibold tracking-wider mb-3 reveal" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
-              Analytics pour portfolios de développeurs
+              Analytics pour portfolios & Formation Freelance Vendeur d'Élite
             </p>
             <h1 className="display-3 lh-sm mb-4 reveal reveal-delay-1">
               Comprends qui visite <br className="d-none d-md-block" />
               ton portfolio
             </h1>
             <p className="lead text-body-custom mb-5 mx-auto fs-5 reveal reveal-delay-2" style={{ maxWidth: '600px' }}>
-              Ne navigue plus à l'aveugle. Suis le parcours de tes visiteurs, identifie les projets qui captivent, et transforme ton audience en opportunités.
+              Ne navigue plus à l'aveugle. Suis le parcours de tes visiteurs, identifie les projets qui captivent, et apprends à vendre tes services à l'international.
             </p>
-            <div className="reveal reveal-delay-3">
+            <div className="d-flex flex-wrap justify-content-center gap-2 reveal reveal-delay-3">
               <button type="button" onClick={onStart} className="btn btn-primary-custom btn-lg px-5 py-3 shadow-sm">
                 Créer mon compte gratuitement
+              </button>
+              <button type="button" onClick={onFormation} className="btn btn-outline-custom btn-lg px-4 py-3 shadow-sm fw-bold">
+                <i className="bi bi-mortarboard-fill text-warning me-2"></i>Formation Freelance 🎓
               </button>
             </div>
           </div>

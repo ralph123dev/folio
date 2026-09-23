@@ -1,7 +1,7 @@
 import React from 'react';
 import logo from '../assets/logo.jpg';
 
-const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onHome, onDashboard, onLogout }) => {
+const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onFormation, onHome, onDashboard, onLogout }) => {
   return (
     <nav className="navbar navbar-expand-lg py-4 sticky-top" style={{ backgroundColor: 'var(--folio-bg)' }}>
       <div className="container">
@@ -38,6 +38,9 @@ const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onHom
                 </li>
                 <li className="nav-item">
                   <button type="button" className="nav-link text-body-custom px-4 border-0 bg-transparent" onClick={onFreelancers}>Freelancers</button>
+                </li>
+                <li className="nav-item">
+                  <button type="button" className="nav-link text-primary fw-bold px-4 border-0 bg-transparent" onClick={onFormation}>Formation 🎓</button>
                 </li>
               </>
             )}

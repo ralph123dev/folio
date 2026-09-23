@@ -10,6 +10,8 @@ import AuthPage from './components/AuthPage';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import Freelancers from './components/Freelancers';
+import FormationLanding from './components/FormationLanding';
+import FormationReader from './components/FormationReader';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { supabase } from './supabaseClient';
 import partenaireImage from './assets/partenaire/partenaire1.jpg';
@@ -27,10 +29,58 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showFreelancers, setShowFreelancers] = useState(false);
+  const [showFormationLanding, setShowFormationLanding] = useState(false);
+  const [showFormationReader, setShowFormationReader] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [pendingFormation, setPendingFormation] = useState(() => {
+    return localStorage.getItem('folio_pending_formation') === 'true';
+  });
 
   useScrollReveal([introFinished, showAuth]);
+
+  // Helper pour réinitialiser toutes les vues
+  const resetAllViews = () => {
+    setShowFreelancers(false);
+    setShowFormationLanding(false);
+    setShowFormationReader(false);
+    setShowDashboard(false);
+    setShowOnboarding(false);
+    setShowAuth(false);
+  };
+
+  // Handler Formation: Google login si non connecté, sinon landing
+  const handleFormation = async () => {
+    if (!user) {
+      // Marquer qu'on veut aller à la formation après login (persist dans localStorage pour survivre au redirect OAuth)
+      localStorage.setItem('folio_pending_formation', 'true');
+      setPendingFormation(true);
+      // Lancer Google OAuth
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+      return;
+    }
+    // Utilisateur connecté: vérifier s'il a déjà payé
+    try {
+      const { data } = await supabase
+        .from('formation_access')
+        .select('status')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      resetAllViews();
+      if (data && data.status === 'active') {
+        setShowFormationReader(true);
+      } else {
+        setShowFormationLanding(true);
+      }
+    } catch {
+      resetAllViews();
+      setShowFormationLanding(true);
+    }
+  };
 
   // Vérifier la session au chargement (après OAuth redirect)
   useEffect(() => {
@@ -62,7 +112,7 @@ function App() {
           .maybeSingle();
 
         if (profile && profile.onboarding_termine) {
-          // Onboarding déjà fait → aller directement au dashboard
+          // Onboarding déjà fait
           setDashboardData({
             id: currentUser.id,
             nom_complet: profile.nom_complet || currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '',
@@ -72,7 +122,29 @@ function App() {
             profession: profile.profession || '',
             decouvert_via: profile.decouvert_via || '',
           });
-          setShowDashboard(true);
+
+          // Vérifier si l'utilisateur voulait aller à la formation (persisté dans localStorage pour survivre au redirect OAuth)
+          const wantsFormation = localStorage.getItem('folio_pending_formation') === 'true';
+          if (wantsFormation) {
+            localStorage.removeItem('folio_pending_formation');
+            setPendingFormation(false);
+            try {
+              const { data: fAccess } = await supabase
+                .from('formation_access')
+                .select('status')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+              if (fAccess && fAccess.status === 'active') {
+                setShowFormationReader(true);
+              } else {
+                setShowFormationLanding(true);
+              }
+            } catch {
+              setShowFormationLanding(true);
+            }
+          } else {
+            setShowDashboard(true);
+          }
           setShowAuth(false);
           setIntroFinished(true);
         } else {
@@ -85,8 +157,17 @@ function App() {
               onboarding_termine: false
             });
           }
-          // Nouvel utilisateur → onboarding
-          setShowOnboarding(true);
+          // Nouvel utilisateur: vérifier s'il voulait la formation
+          const wantsFormationNew = localStorage.getItem('folio_pending_formation') === 'true';
+          if (wantsFormationNew) {
+            // Même les nouveaux utilisateurs: on les envoie à la formation directement
+            // (pas besoin d'onboarding complet pour accéder à la formation)
+            localStorage.removeItem('folio_pending_formation');
+            setPendingFormation(false);
+            setShowFormationLanding(true);
+          } else {
+            setShowOnboarding(true);
+          }
           setShowAuth(false);
           setIntroFinished(true);
         }
@@ -216,6 +297,42 @@ function App() {
     return <AuthPage initialMode={authMode} onBack={() => setShowAuth(false)} />;
   }
 
+  // Vue Formation Reader (après paiement)
+  if (showFormationReader && user) {
+    return (
+      <FormationReader
+        user={user}
+        onBackToHome={() => {
+          resetAllViews();
+        }}
+      />
+    );
+  }
+
+  // Vue Formation Landing (présentation + paiement)
+  if (showFormationLanding) {
+    return (
+      <FormationLanding
+        user={user}
+        onBack={() => {
+          resetAllViews();
+        }}
+        onOpenReader={() => {
+          resetAllViews();
+          setShowFormationReader(true);
+        }}
+        onGoogleLogin={() => {
+          localStorage.setItem('folio_pending_formation', 'true');
+          setPendingFormation(true);
+          supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin }
+          });
+        }}
+      />
+    );
+  }
+
   if (showFreelancers) {
     return (
       <div className="d-flex flex-column min-vh-100 fade-in">
@@ -224,6 +341,7 @@ function App() {
           user={user}
           onHome={() => setShowFreelancers(false)}
           onFreelancers={() => setShowFreelancers(true)}
+          onFormation={handleFormation}
           onStart={() => { setAuthMode('signup'); setShowAuth(true); setShowFreelancers(false); }}
           onLogin={() => { setAuthMode('login'); setShowAuth(true); setShowFreelancers(false); }}
           onDashboard={() => { setShowFreelancers(false); setShowDashboard(true); }}
@@ -252,6 +370,7 @@ function App() {
       <Navbar
         user={user}
         onFreelancers={() => setShowFreelancers(true)}
+        onFormation={handleFormation}
         onStart={() => { setAuthMode(null); setShowAuth(true); }}
         onLogin={() => { setAuthMode('login'); setShowAuth(true); }}
         onDashboard={() => {
@@ -271,7 +390,7 @@ function App() {
         }}
       />
       <main className="flex-grow-1">
-        <Hero onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
+        <Hero onStart={() => { setAuthMode('signup'); setShowAuth(true); }} onFormation={handleFormation} />
         <HowItWorks />
         <SupportedCountries />
         <Features
@@ -302,7 +421,7 @@ function App() {
             </a>
           </div>
         </section>
-        <CtaSection onStart={() => { setAuthMode('signup'); setShowAuth(true); }} />
+        <CtaSection onStart={() => { setAuthMode('signup'); setShowAuth(true); }} onFormation={handleFormation} />
       </main>
       <Footer />
     </div>
