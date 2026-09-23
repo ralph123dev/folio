@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yasxjodaccjvajttqrlo.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yasxjodaccjvajttqrlo.supabase.co';
+const supabaseUrl = rawUrl.replace(/["'\r\n]/g, '').trim();
+
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_spzxbz44VeHYPIwkmQqEsA_iuhCKTIc';
+const supabaseAnonKey = rawKey.replace(/["'\r\n]/g, '').trim();
 
 const detectFreshAuthCallback = (url, params) => {
 	if (!params.access_token || !params.expires_at || !params.expires_in) return true;
