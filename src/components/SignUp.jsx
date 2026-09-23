@@ -1,22 +1,18 @@
 import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import { supabase } from '../supabaseClient';
-import { getAuthRedirectUrl } from '../authRedirect';
-import googleLogo from '../assets/google.jpg';
 import './auth.css';
 
 export default function SignUp({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  const handleOAuth = async () => {
+  const handleOAuth = async (credentialResponse) => {
     setServerError('');
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithIdToken({
       provider: 'google',
-      options: {
-        redirectTo: getAuthRedirectUrl(),
-        queryParams: { prompt: 'select_account' },
-      },
+      token: credentialResponse.credential,
     });
     if (error) {
       setServerError(error.message || 'Inscription impossible pour le moment.');
@@ -34,9 +30,14 @@ export default function SignUp({ onLogin }) {
         {serverError && <div className="folio-error-text mb-3" role="alert">{serverError}</div>}
 
         <div className="d-grid gap-2 folio-auth-item mb-4">
-          <button type="button" className="folio-social-btn py-2.5" onClick={handleOAuth} disabled={loading}>
-            <img src={googleLogo} alt="" width="20" height="20" /> S'inscrire avec Google
-          </button>
+          <GoogleLogin
+            onSuccess={handleOAuth}
+            onError={() => { setServerError('Inscription Google impossible pour le moment.'); setLoading(false); }}
+            useOneTap={false}
+            text="signup_with"
+            shape="rectangular"
+            width="320"
+          />
         </div>
 
         <p className="folio-auth-footer-text folio-auth-item mb-0">
