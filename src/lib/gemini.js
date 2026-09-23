@@ -17,6 +17,10 @@ export const analyzePortfolioWithGemini = async ({
   const rawKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.gemini_api_key || '';
   const apiKey = (rawKey || '').replace(/["'\r\n]/g, '').trim();
 
+  if (!apiKey) {
+    throw new Error("La clé API Gemini (VITE_GEMINI_API_KEY) n'est pas configurée dans les variables d'environnement de Vercel.");
+  }
+
   const prompt = `Tu es un expert mondial en SEO, UX/UI et Marketing Digital pour les freelances et professionnels du web.
 Analyse le portfolio du professionnel suivant et génère un rapport d'analyse IA complet ainsi que le code HTML d'en-tête (<head>) optimisé à intégrer directement sur son site.
 
