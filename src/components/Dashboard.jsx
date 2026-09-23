@@ -17,7 +17,9 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showProMaxModal, setShowProMaxModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showSearchDetectionModal, setShowSearchDetectionModal] = useState(false);
+  const [showBlogMaxModal, setShowBlogMaxModal] = useState(false);
   const [showBoostContactsSheet, setShowBoostContactsSheet] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
@@ -120,6 +122,13 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
     }, 250);
   };
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -471,6 +480,11 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </button>
                 </li>
                 <li><hr className="dropdown-divider" /></li>
+                <li>
+                  <button className="dropdown-item py-2" onClick={() => setShowBlogMaxModal(true)}>
+                    <i className="bi bi-journal-richtext me-2 text-muted"></i>Blog Max
+                  </button>
+                </li>
                 <li>
                   <button className="dropdown-item py-2" onClick={() => setShowMyProfilesModal(true)}>
                     <i className="bi bi-person-vcard me-2 text-muted"></i>Mes Profils
@@ -906,6 +920,76 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
 
       {showSearchDetectionModal && (
         <SearchDetectionModal stats={searchStats} onRefresh={fetchSearchStats} onClose={() => setShowSearchDetectionModal(false)} />
+      )}
+
+      {showBlogMaxModal && (
+        isMobile ? (
+          <div className="mobile-bottom-sheet-overlay" onClick={(event) => { if (event.target === event.currentTarget) setShowBlogMaxModal(false); }}>
+            <div className="mobile-bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="blog-max-sheet-title">
+              <div className="mobile-bottom-sheet-header">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="d-inline-flex align-items-center justify-content-center rounded-circle" style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #534AB7, #8B5CF6)', color: 'white' }}>
+                    <i className="bi bi-journal-richtext"></i>
+                  </span>
+                  <h2 id="blog-max-sheet-title" className="h5 font-serif fw-bold text-title mb-0">Blog Max</h2>
+                </div>
+                <button type="button" className="btn btn-link p-0 text-muted" onClick={() => setShowBlogMaxModal(false)} aria-label="Fermer">
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div className="p-4">
+                <div className="rounded-4 p-3 mb-3" style={{ background: 'linear-gradient(135deg, rgba(83,74,183,0.12), rgba(139,92,246,0.08))', border: '1px solid rgba(83,74,183,0.12)' }}>
+                  <div className="small text-uppercase fw-bold" style={{ letterSpacing: '0.08em', color: 'var(--folio-primary)' }}>Disponible à partir du</div>
+                  <div className="display-6 fw-bold text-title mt-2">12 Novembre</div>
+                </div>
+                <p className="text-title fw-semibold mb-2">Un espace blog pensé pour les freelancers</p>
+                <p className="mb-3 text-body-custom">Blog Max va permettre aux freelancers de publier des articles, partager leur expertise, renforcer leur visibilité et mieux propulser leur activité.</p>
+                <p className="mb-3 text-body-custom">Cette fonctionnalité offrira aussi un espace de discussion direct avec leurs clients, sans jamais sortir du site, pour faciliter la conversion, la confiance et les échanges.</p>
+                <div className="d-flex align-items-center gap-2 rounded-3 p-3" style={{ backgroundColor: '#F4F1FE' }}>
+                  <i className="bi bi-chat-dots-fill fs-4" style={{ color: 'var(--folio-primary)' }}></i>
+                  <div>
+                    <div className="fw-semibold text-title">Chat client intégré</div>
+                    <small className="text-muted">Échanges premium directement sur Folio</small>
+                  </div>
+                </div>
+                <button type="button" className="btn btn-primary-custom w-100 mt-4" onClick={() => setShowBlogMaxModal(false)}>Compris</button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="modal fade show d-block blog-max-desktop-modal" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(38, 33, 92, 0.45)', backdropFilter: 'blur(4px)', zIndex: 2050 }} onClick={(event) => { if (event.target === event.currentTarget) setShowBlogMaxModal(false); }}>
+            <div className="modal-dialog modal-dialog-centered" role="document">
+              <div className="modal-content border-0 shadow" style={{ borderRadius: '22px', overflow: 'hidden' }}>
+                <div className="p-4 pb-0">
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div className="d-flex align-items-center gap-3">
+                      <span className="d-inline-flex align-items-center justify-content-center rounded-circle" style={{ width: '44px', height: '44px', background: 'linear-gradient(135deg, #534AB7, #8B5CF6)', color: 'white' }}>
+                        <i className="bi bi-journal-richtext fs-5"></i>
+                      </span>
+                      <div>
+                        <div className="small text-uppercase fw-bold" style={{ letterSpacing: '0.08em', color: 'var(--folio-primary)' }}>Blog Max</div>
+                        <h5 className="modal-title font-serif fw-bold text-title mb-0">Bientôt disponible</h5>
+                      </div>
+                    </div>
+                    <button type="button" className="btn-close" onClick={() => setShowBlogMaxModal(false)} aria-label="Fermer"></button>
+                  </div>
+                </div>
+                <div className="modal-body px-4 py-3">
+                  <div className="rounded-4 p-3 mb-3 text-center" style={{ background: 'linear-gradient(135deg, rgba(83,74,183,0.12), rgba(139,92,246,0.08))', border: '1px solid rgba(83,74,183,0.12)' }}>
+                    <div className="small text-uppercase fw-bold" style={{ letterSpacing: '0.08em', color: 'var(--folio-primary)' }}>Disponible à partir du</div>
+                    <div className="display-6 fw-bold text-title mt-2">12 Novembre</div>
+                  </div>
+                  <p className="text-title fw-semibold mb-2">Un espace blog pensé pour les freelancers</p>
+                  <p className="mb-3 text-body-custom">Blog Max permettra aux freelancers d’avoir un espace blog pour publier des articles, partager leur expertise et mieux propulser leur activité.</p>
+                  <p className="mb-0 text-body-custom">Ils pourront aussi discuter directement avec leurs clients sur le site, sans jamais quitter la plateforme.</p>
+                </div>
+                <div className="modal-footer border-0 px-4 pb-4 pt-0">
+                  <button type="button" className="btn btn-primary-custom w-100" onClick={() => setShowBlogMaxModal(false)}>Fermer</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       {showBoostContactsSheet && (
