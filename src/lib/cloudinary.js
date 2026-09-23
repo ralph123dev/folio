@@ -52,25 +52,17 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
       }
 
       xhr.onload = () => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch {}
         if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            if (data.secure_url) {
-              if (onProgress) onProgress(100);
-              resolve(data.secure_url);
-            } else {
-              reject(new Error(data.error?.message || 'Upload échoué.'));
-            }
-          } catch (e) {
-            reject(e);
+          if (data.secure_url) {
+            if (onProgress) onProgress(100);
+            resolve(data.secure_url);
+          } else {
+            reject(new Error(data.error?.message || 'Téléversement échoué sur Cloudinary.'));
           }
         } else {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            reject(new Error(data.error?.message || `Erreur Cloudinary (${xhr.status})`));
-          } catch {
-            reject(new Error(`Erreur serveur Cloudinary (${xhr.status})`));
-          }
+          reject(new Error(data.error?.message || `Erreur Cloudinary (${xhr.status})`));
         }
       };
 
@@ -80,7 +72,7 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
   } catch (err) {
     if (err.message === 'XHR_NET_ERROR') {
       try {
-        const resp = await fetch(endpoint, { method: 'POST', body: formData });
+        const resp = await fetch(endpoint, { method: 'POST', body: formData, mode: 'cors' });
         const data = await resp.json();
         if (resp.ok && data.secure_url) {
           if (onProgress) onProgress(100);
@@ -89,7 +81,7 @@ export const uploadToCloudinary = async (file, resourceType = 'auto', onProgress
         throw new Error(data.error?.message || `Erreur Cloudinary (${resp.status})`);
       } catch (fetchErr) {
         console.error('Échec envoi Cloudinary via fetch:', fetchErr);
-        throw new Error('Impossible de contacter Cloudinary. Vérifiez votre connexion internet ou désactivez votre bloqueur de publicité (AdBlock/Brave).');
+        throw new Error('Connexion vers Cloudinary bloquée. Désactivez votre bloqueur de publicité (AdBlock/Brave) ou vérifiez votre connexion réseau.');
       }
     }
     throw err;
