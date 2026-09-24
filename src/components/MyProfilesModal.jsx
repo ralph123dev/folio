@@ -29,6 +29,7 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [error, setError] = useState('');
 
@@ -55,12 +56,14 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
 
   const startCreate = () => {
     setEditingProfile(null);
+    setIsCreating(true);
     setFormData({ ...emptyForm, nom: userName || '' });
     setError('');
   };
 
   const startEdit = (profile) => {
     setEditingProfile(profile);
+    setIsCreating(false);
     setFormData({
       nom: profile.nom || '',
       prenom: profile.prenom || '',
@@ -89,6 +92,7 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
 
   const cancelForm = () => {
     setEditingProfile(null);
+    setIsCreating(false);
     setFormData(emptyForm);
     setError('');
   };
@@ -250,7 +254,7 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
 
           {loading ? (
             <div className="text-center py-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">Chargement...</span></div></div>
-          ) : editingProfile || (!profiles.length && canCreate) ? (
+          ) : editingProfile || isCreating || (!profiles.length && canCreate) ? (
             <ProfileForm
               formData={formData}
               saving={saving}
