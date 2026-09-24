@@ -1728,9 +1728,9 @@ function VerificationModal({ userData, profileData, onRefreshProfile, onOpenRech
   MODAL DE RECHARGE — Paiement SasPay Mobile Money
 ─────────────────────────────────────────────────────────────────── */
 const PACKS = [
-  { id: 'test',    label: 'Mode Débutant', title: 'Mode Débutant', desc: 'Accès de test aux fonctionnalités premium', amount: 1500 },
-  { id: 'starter', label: 'Mode Starter', title: 'Mode Starter', desc: 'SEO portfolio et traqueur de clics', amount: 2500 },
-  { id: 'pro',     label: 'Mode Boost', title: 'Mode Boost', desc: 'Recommandations et prospection',     amount: 10000 },
+  { id: 'test',    label: 'Mode Débutant', title: 'Mode Débutant', desc: 'Accès de test aux fonctionnalités premium', amount: 500 },
+  { id: 'starter', label: 'Mode Starter', title: 'Mode Starter', desc: 'SEO portfolio et traqueur de clics', amount: 800 },
+  { id: 'pro',     label: 'Mode Boost', title: 'Mode Boost', desc: 'Recommandations et prospection',     amount: 15000 },
 ];
 
 const FALLBACK_PAYMENT_COUNTRIES = [
