@@ -21,6 +21,44 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [showBlogMaxModal, setShowBlogMaxModal] = useState(false);
   const [showAiAnalysisModal, setShowAiAnalysisModal] = useState(false);
   const [showBoostContactsSheet, setShowBoostContactsSheet] = useState(false);
+  const [showProspectingModal, setShowProspectingModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
+
+  // Parrainage: code unique dérivé de l'ID (permanent)
+  const referralCode = userData?.id
+    ? 'FOLIO-' + userData.id.replace(/-/g, '').substring(0, 8).toUpperCase()
+    : '';
+  const referralLink = referralCode ? `${window.location.origin}?ref=${referralCode}` : '';
+
+  const handleCopyReferralLink = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = referralLink;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 3000);
+  };
+
+  const handleShareReferralWhatsApp = () => {
+    const msg = encodeURIComponent(
+      `🎓 Rejoins-moi sur Folio — la plateforme freelance en Afrique !\n\nInscris-toi gratuitement avec mon lien :\n👉 ${referralLink}\n\nCode : ${referralCode}`
+    );
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
+  };
+
+  const handleInviteFriends = async () => {
+    await handleCopyReferralLink();
+    setShowReferralModal(true);
+  };
+  const [prospectingBatch, setProspectingBatch] = useState([]);
+  const [prospectingSeenKeys, setProspectingSeenKeys] = useState(new Set());
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [visits, setVisits] = useState([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
@@ -76,6 +114,43 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
     }
 
     setShowAiAnalysisModal(true);
+  };
+
+  const getRandomUniqueProspectingBatch = (contacts, seenKeys, limit = 10) => {
+    const available = contacts.filter((contact) => !seenKeys.has(getBoostContactKey(contact)));
+    const shuffled = [...available].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(limit, shuffled.length));
+  };
+
+  const handleOpenProspectingModal = () => {
+    if (!boostContacts || boostContacts.length === 0) {
+      return;
+    }
+
+    const initialBatch = getRandomUniqueProspectingBatch(boostContacts, new Set(), 10);
+    setProspectingSeenKeys(new Set(initialBatch.map((contact) => getBoostContactKey(contact))));
+    setProspectingBatch(initialBatch);
+    setShowProspectingModal(true);
+  };
+
+  const handleNextProspectingBatch = () => {
+    if (!boostContacts || boostContacts.length === 0) {
+      return;
+    }
+
+    const nextBatch = getRandomUniqueProspectingBatch(boostContacts, prospectingSeenKeys, 10);
+    if (nextBatch.length === 0) {
+      setProspectingSeenKeys(new Set());
+      const freshBatch = getRandomUniqueProspectingBatch(boostContacts, new Set(), 10);
+      setProspectingBatch(freshBatch);
+      setProspectingSeenKeys(new Set(freshBatch.map((contact) => getBoostContactKey(contact))));
+      return;
+    }
+
+    const nextSeen = new Set(prospectingSeenKeys);
+    nextBatch.forEach((contact) => nextSeen.add(getBoostContactKey(contact)));
+    setProspectingSeenKeys(nextSeen);
+    setProspectingBatch(nextBatch);
   };
 
 
@@ -577,12 +652,14 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item py-2" onClick={() => alert('Boost des réseaux sociaux configuré...')}>
-                    <i className="bi bi-graph-up-arrow me-2 text-muted"></i>Booster mes réseaux
+                  <button className="dropdown-item py-2" onClick={handleInviteFriends}>
+                    <i className="bi bi-gift me-2 text-muted" style={{ color: '#16a34a' }}></i>
+                    <span className="fw-medium">Inviter des amis</span>
+                    <span className="ms-2 badge bg-success-subtle text-success border border-success-subtle rounded-pill" style={{ fontSize: '0.65rem' }}>+50 F/ami</span>
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item py-2" onClick={() => alert('Recherche de contacts en cours...')}>
+                  <button className="dropdown-item py-2" onClick={handleOpenProspectingModal}>
                     <i className="bi bi-people me-2 text-muted"></i>Trouver des contacts à qui vendre
                   </button>
                 </li>
@@ -754,7 +831,14 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                       Aucune demande client pour le moment. Les projets publiés par les clients apparaîtront ici.
                     </p>
                   ) : (
-                    <div className="d-flex flex-column gap-2" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                    <div
+                      className="d-flex flex-column gap-2"
+                      style={
+                        clientRequests.length > 4
+                          ? { maxHeight: '420px', overflowY: 'auto', paddingRight: '4px', scrollbarGutter: 'stable' }
+                          : { }
+                      }
+                    >
                       {clientRequests.map((client) => (
                         <div 
                           key={client.id}
@@ -1196,6 +1280,100 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
 
       {showSearchDetectionModal && (
         <SearchDetectionModal stats={searchStats} onRefresh={fetchSearchStats} onClose={() => setShowSearchDetectionModal(false)} />
+      )}
+
+      {showProspectingModal && (
+        <div className="modal fade show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(38, 33, 92, 0.55)', backdropFilter: 'blur(5px)', zIndex: 1060 }} onClick={(e) => { if (e.target === e.currentTarget) { setShowProspectingModal(false); setProspectingSeenKeys(new Set()); setProspectingBatch([]); } }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+              <div className="modal-header border-0 bg-light px-4 py-3">
+                <h5 className="modal-title font-serif fw-bold text-title mb-0">
+                  <i className="bi bi-people-fill text-primary me-2"></i>
+                  Prospection ciblée
+                </h5>
+                <button type="button" className="btn-close" onClick={() => { setShowProspectingModal(false); setProspectingSeenKeys(new Set()); setProspectingBatch([]); }}></button>
+              </div>
+
+              <div className="modal-body p-4">
+                {!boostContacts || boostContacts.length === 0 ? (
+                  <div className="text-center py-4">
+                    <i className="bi bi-exclamation-circle d-block fs-3 text-warning mb-2"></i>
+                    <p className="mb-3 text-body-custom">Vous n’avez pas encore accès aux contacts de prospection.</p>
+                    <button type="button" className="btn btn-primary-custom" onClick={() => setShowProMaxModal(true)}>
+                      Souscrire au programme
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <div>
+                        <h6 className="fw-bold text-title mb-1">10 contacts à viser</h6>
+                        <p className="small text-muted mb-0">Des contacts non dupliqués, sélectionnés parmi vos prospects.</p>
+                      </div>
+                      <span className="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle">
+                        {prospectingBatch.length} / {Math.min(10, boostContacts.length)} affichés
+                      </span>
+                    </div>
+
+                    <div className="row g-3">
+                      {prospectingBatch.map((contact) => (
+                        <div className="col-md-6" key={`${getBoostContactKey(contact)}-${contact.name}`}>
+                          <div className="p-3 rounded-3 border h-100" style={{ backgroundColor: '#FAFAFE' }}>
+                            <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
+                              <div className="fw-bold text-title">{contact.name}</div>
+                              <span className="badge text-bg-light border">Prospect</span>
+                            </div>
+
+                            {contact.email && (
+                              <div className="small text-muted mb-2">
+                                <i className="bi bi-envelope me-1"></i>
+                                {contact.email}
+                              </div>
+                            )}
+
+                            {contact.phone && (
+                              <div className="small text-muted mb-2">
+                                <i className="bi bi-whatsapp me-1 text-success"></i>
+                                {contact.phone}
+                              </div>
+                            )}
+
+                            {contact.whatsappPhone ? (
+                              <a
+                                href={`https://wa.me/${contact.whatsappPhone}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-sm btn-success w-100"
+                              >
+                                <i className="bi bi-whatsapp me-1"></i>Contacter sur WhatsApp
+                              </a>
+                            ) : (
+                              <a
+                                href={`mailto:${contact.email}`}
+                                className="btn btn-sm btn-outline-primary w-100"
+                              >
+                                <i className="bi bi-envelope me-1"></i>Envoyer un email
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center mt-4 gap-2 flex-wrap">
+                      <button type="button" className="btn btn-outline-custom" onClick={() => { setShowProspectingModal(false); setProspectingSeenKeys(new Set()); setProspectingBatch([]); }}>
+                        Fermer
+                      </button>
+                      <button type="button" className="btn btn-primary-custom" onClick={handleNextProspectingBatch}>
+                        <i className="bi bi-arrow-repeat me-1"></i>Autres contacts
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showBlogMaxModal && (
@@ -3642,7 +3820,154 @@ function AiAnalysisModal({ portfolioUrl, profileData, userData, onClose }) {
           ) : null}
         </div>
       </div>
+
+      {/* ===================== MODALE PARRAINAGE ===================== */}
+      {showReferralModal && (
+        <>
+          {/* Overlay */}
+          <div
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 12, 41, 0.75)', backdropFilter: 'blur(8px)', zIndex: 1070 }}
+            onClick={() => setShowReferralModal(false)}
+          />
+          {/* Panel: bottom-sheet sur mobile, dialog centré sur desktop */}
+          <div
+            style={{
+              position: 'fixed',
+              zIndex: 1071,
+              left: 0,
+              right: 0,
+              bottom: isMobile ? 0 : '50%',
+              top: isMobile ? 'auto' : '50%',
+              transform: isMobile ? 'none' : 'translateY(-50%)',
+              margin: isMobile ? 0 : 'auto',
+              maxWidth: isMobile ? '100%' : '500px',
+              width: '100%',
+              borderRadius: isMobile ? '24px 24px 0 0' : '24px',
+              overflow: 'hidden',
+              backgroundColor: '#fff',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.2)',
+            }}
+          >
+            {/* Drag handle sur mobile */}
+            {isMobile && (
+              <div className="d-flex justify-content-center pt-3 pb-1">
+                <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: '#d1d5db' }}></div>
+              </div>
+            )}
+
+            {/* Header */}
+            <div className="px-4 py-3 text-white" style={{ background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' }}>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <span className="badge bg-warning text-dark rounded-pill fw-bold px-3 py-1 mb-2 d-inline-block">🎁 Programme de Parrainage</span>
+                  <h5 className="font-serif fw-bold text-white mb-1">Invitez vos amis, gagnez 50 F !</h5>
+                  <p className="text-white-50 small mb-0">
+                    Pour chaque ami inscrit avec votre lien, vous recevez automatiquement{' '}
+                    <strong className="text-warning">50 F CFA</strong> sur votre solde.
+                  </p>
+                </div>
+                <button type="button" className="btn-close btn-close-white ms-3 flex-shrink-0" onClick={() => setShowReferralModal(false)}></button>
+              </div>
+            </div>
+
+            {/* Body scrollable */}
+            <div className="p-4" style={{ maxHeight: isMobile ? '70vh' : '75vh', overflowY: 'auto' }}>
+              {referralCopied && (
+                <div className="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-3" role="alert">
+                  <i className="bi bi-check-circle-fill"></i>
+                  <span>Lien copié dans le presse-papiers.</span>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="row g-3 mb-4">
+                <div className="col-6">
+                  <div className="p-3 rounded-4 text-center border" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                    <i className="bi bi-people-fill fs-4 text-success d-block mb-1"></i>
+                    <p className="small text-muted mb-0">Gains par ami</p>
+                    <p className="fw-bold text-success mb-0 fs-5">+ 50 F CFA</p>
+                  </div>
+                </div>
+                <div className="col-6">
+                  <div className="p-3 rounded-4 text-center border" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                    <i className="bi bi-infinity fs-4 text-success d-block mb-1"></i>
+                    <p className="small text-muted mb-0">Parrainages</p>
+                    <p className="fw-bold text-success mb-0 fs-5">Illimités</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code unique */}
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-muted text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                  <i className="bi bi-tag me-1"></i>Votre code unique
+                </label>
+                <div
+                  className="p-3 rounded-3 text-center fw-bold font-monospace fs-5 border border-2"
+                  style={{ backgroundColor: '#f8f9fe', borderColor: 'var(--folio-primary)', color: 'var(--folio-primary)', letterSpacing: '0.1em' }}
+                >
+                  {referralCode}
+                </div>
+                <small className="text-muted d-block mt-1" style={{ fontSize: '0.75rem' }}>
+                  <i className="bi bi-lock-fill me-1"></i>Code permanent — ne changera jamais.
+                </small>
+              </div>
+
+              {/* Lien */}
+              <div className="mb-4">
+                <label className="form-label small fw-bold text-muted text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                  <i className="bi bi-link-45deg me-1"></i>Votre lien de parrainage
+                </label>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control form-control-sm bg-light font-monospace"
+                    value={referralLink}
+                    readOnly
+                    style={{ fontSize: '0.75rem' }}
+                  />
+                  <button
+                    className={`btn btn-sm fw-bold ${referralCopied ? 'btn-success' : 'btn-outline-primary'}`}
+                    onClick={handleCopyReferralLink}
+                    style={{ minWidth: '90px' }}
+                  >
+                    {referralCopied
+                      ? <><i className="bi bi-check-lg me-1"></i>Copié !</>
+                      : <><i className="bi bi-clipboard me-1"></i>Copier</>
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {/* Boutons partage */}
+              <div className="d-flex flex-column gap-2">
+                <button className="btn btn-success py-3 fw-bold rounded-pill" onClick={handleShareReferralWhatsApp}>
+                  <i className="bi bi-whatsapp me-2 fs-5"></i>Partager sur WhatsApp
+                </button>
+                <button className="btn btn-outline-secondary py-2 rounded-pill" onClick={handleCopyReferralLink}>
+                  <i className="bi bi-copy me-2"></i>
+                  {referralCopied ? 'Lien copié !' : 'Copier le lien complet'}
+                </button>
+              </div>
+
+              {/* Explication */}
+              <div className="mt-4 p-3 rounded-3 bg-light border">
+                <p className="small text-muted mb-1 fw-bold">
+                  <i className="bi bi-info-circle text-primary me-1"></i>Comment ça marche ?
+                </p>
+                <ol className="small text-muted mb-0 ps-3">
+                  <li>Partagez votre lien à un ami.</li>
+                  <li>Il s'inscrit sur Folio via votre lien.</li>
+                  <li>Vous recevez automatiquement <strong>50 F CFA</strong> sur votre solde.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
     </div>
   );
 }
+
 

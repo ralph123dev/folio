@@ -157,6 +157,24 @@ export default function Onboarding({ user, onComplete }) {
 
       if (error) throw error;
 
+      // Appliquer le parrainage si un code était dans l'URL (?ref=FOLIO-XXXXXXXX)
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        if (refCode) {
+          await supabase.rpc('apply_referral', {
+            p_referred_id: user.id,
+            p_referral_code: refCode,
+          });
+          // Nettoyer le paramètre de l'URL sans recharger la page
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, '', cleanUrl);
+        }
+      } catch (refErr) {
+        // Le parrainage est optionnel, on ne bloque pas l'onboarding en cas d'erreur
+        console.warn('Parrainage non appliqué:', refErr);
+      }
+
       // Attente de 5 secondes avec l'animation de chargement
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
@@ -168,6 +186,7 @@ export default function Onboarding({ user, onComplete }) {
         decouvert_via: formData.discoveredVia,
       });
     } catch (error) {
+
       setServerError(error.message || 'Une erreur est survenue. Réessaie.');
       setLoading(false);
     }
