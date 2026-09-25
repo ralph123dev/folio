@@ -3,6 +3,7 @@ import cameroonFlag from '../assets/pays/téléchargement (9).png';
 import coteDivoireFlag from '../assets/pays/téléchargement (8).png';
 import maliFlag from '../assets/pays/téléchargement (13).png';
 import nigerFlag from '../assets/pays/téléchargement (12).png';
+import rdcFlag from '../assets/pays/rdc.png';
 import senegalFlag from '../assets/pays/téléchargement (10).png';
 import togoFlag from '../assets/pays/téléchargement (11).png';
 
@@ -14,6 +15,7 @@ const supportedCountries = [
   { name: 'Niger', flag: nigerFlag },
   { name: 'Mali', flag: maliFlag },
   { name: 'Burkina Faso', flag: burkinaFasoFlag },
+  { name: 'RDC', flag: rdcFlag },
 ];
 
 const marqueeCountries = Array.from({ length: 4 }, () => supportedCountries).flat();

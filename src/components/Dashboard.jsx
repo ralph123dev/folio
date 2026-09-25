@@ -1802,6 +1802,15 @@ const FALLBACK_PAYMENT_COUNTRIES = [
       { value: 'moov_ne', label: 'Moov Money Niger' },
     ],
   },
+  {
+    code: 'CD',
+    name: 'République démocratique du Congo',
+    networks: [
+      { value: 'airtel_cd', label: 'Airtel Money RDC' },
+      { value: 'orange_cd', label: 'Orange Money RDC' },
+      { value: 'vodacom_cd', label: 'Vodacom M-Pesa RDC' },
+    ],
+  },
 ];
 
 const normalizePaymentCountries = (payload) => {
