@@ -6,8 +6,8 @@ const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onFor
     <nav className="navbar navbar-expand-lg py-4 sticky-top" style={{ backgroundColor: 'var(--folio-bg)' }}>
       <div className="container">
         <a className="navbar-brand d-flex align-items-center gap-3 fs-3" href="#" onClick={onHome}>
-          <img src={logo} alt="Folio Logo" width="40" height="40" className="rounded-circle" style={{ mixBlendMode: 'multiply' }} />
-          Folio
+          <img src={logo} alt="Logo Folio Dev" width="40" height="40" className="rounded-circle" style={{ mixBlendMode: 'multiply' }} />
+          Folio Dev
         </a>
         
         <button 

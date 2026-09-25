@@ -5,7 +5,7 @@ const HowItWorks = () => {
     <section id="how-it-works" className="py-5" style={{ backgroundColor: 'var(--folio-bg)' }}>
       <div className="container py-5 mt-4">
         <div className="text-center mb-5 pb-4 reveal">
-          <h2 className="display-5 font-serif mb-4">La simplicité avant tout</h2>
+          <h2 className="display-5 font-serif mb-4">Comment fonctionne Folio Dev ?</h2>
           <p className="lead text-body-custom mx-auto" style={{ maxWidth: '700px' }}>
             Aucune configuration complexe. On a conçu Folio pour s'intégrer instantanément, te laissant plus de temps pour coder.
           </p>

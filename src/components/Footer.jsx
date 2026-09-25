@@ -8,11 +8,11 @@ const Footer = () => {
         <div className="row gy-5 mb-5 reveal">
           <div className="col-lg-4 col-md-6 pe-lg-5 reveal-delay-1">
             <a className="navbar-brand d-flex align-items-center gap-3 fs-4 mb-4" href="#">
-              <img src={logo} alt="Folio Logo" width="32" height="32" className="rounded-circle" style={{ mixBlendMode: 'multiply' }} />
-              Folio
+              <img src={logo} alt="Logo Folio Dev" width="32" height="32" className="rounded-circle" style={{ mixBlendMode: 'multiply' }} />
+              Folio Dev
             </a>
             <p className="text-body-custom mb-4" style={{ fontSize: '0.95rem' }}>
-              La plateforme d'analytics conçue spécifiquement pour les développeurs et tout autres travailleurs dans le monde digital. Comprends ton audience et développe ta marque personnelle.
+              Folio Dev est la plateforme d'analytics conçue pour les développeurs et les professionnels du digital. Comprends ton audience et développe ta marque personnelle.
             </p>
             <div className="d-flex gap-3">
               <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-body-custom text-decoration-none fs-5" aria-label="Facebook"><i className="bi bi-facebook"></i></a>
@@ -51,7 +51,7 @@ const Footer = () => {
         </div>
         
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-center pt-4 mt-2 text-body-custom" style={{ opacity: 0.7, fontSize: '0.9rem', borderTop: '1px solid rgba(38, 33, 92, 0.1)' }}>
-          <p className="mb-3 mb-md-0">&copy; {new Date().getFullYear()} Folio. Tous droits réservés.</p>
+          <p className="mb-3 mb-md-0">&copy; {new Date().getFullYear()} Folio Dev. Tous droits réservés.</p>
           <div className="d-flex gap-4">
             <a href="#" className="text-body-custom text-decoration-none">Légal</a>
             <a href="#" className="text-body-custom text-decoration-none">Confidentialité</a>

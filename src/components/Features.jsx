@@ -121,7 +121,7 @@ const FolioVideo = () => {
               muted
               playsInline
               preload="metadata"
-              aria-label="Présentation de Folio"
+              aria-label="Présentation de Folio Dev et de ses fonctionnalités"
             />
           </div>
         </div>
@@ -135,7 +135,7 @@ const Features = ({ user, onStart, onDashboard }) => {
     <section id="features" className="py-5 bg-white">
       <div className="container py-5 my-3">
         <div className="text-center mb-5 pb-5 reveal">
-          <h2 className="display-5 font-serif mb-4">Tout ce dont tu as besoin, sans le superflu</h2>
+          <h2 className="display-5 font-serif mb-4">Les fonctionnalités de Folio Dev pour ton portfolio</h2>
           <p className="lead text-body-custom mx-auto" style={{ maxWidth: '650px' }}>
             Folio se concentre sur l'essentiel pour t'apporter de la valeur, sans te noyer sous des graphiques incompréhensibles.
           </p>
@@ -209,7 +209,7 @@ const Features = ({ user, onStart, onDashboard }) => {
           <div className="row g-4">
             <div className="col-lg-4">
               <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
-                <img src={analysePortfolioImage} alt="Analyse d'un portfolio" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
+                <img src={analysePortfolioImage} alt="Analyse Folio Dev d'un portfolio développeur" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
                 <div className="p-4">
                   <h3 className="font-serif h4 mb-3">Analyse de portfolio</h3>
                   <p className="text-body-custom mb-4">
@@ -224,7 +224,7 @@ const Features = ({ user, onStart, onDashboard }) => {
 
             <div className="col-lg-4">
               <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
-                <img src={competitorImage} alt="Analyse des performances des autres freelances" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
+                <img src={competitorImage} alt="Analyse Folio Dev des performances de portfolios concurrents" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
                 <div className="p-4">
                   <h3 className="font-serif h4 mb-3">Comprendre les meilleurs profils</h3>
                   <p className="text-body-custom mb-4">
@@ -239,7 +239,7 @@ const Features = ({ user, onStart, onDashboard }) => {
 
             <div className="col-lg-4">
               <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
-                <img src={formationImage} alt="Formation pour devenir freelancer" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
+                <img src={formationImage} alt="Formation Folio Dev pour développeurs freelances" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
                 <div className="p-4">
                   <h3 className="font-serif h4 mb-3">IA + formation Freelancer</h3>
                   <p className="text-body-custom mb-4">

@@ -36,10 +36,10 @@ const Hero = ({ onStart, onFormation }) => {
         <div className="row justify-content-center mb-5">
           <div className="col-lg-8">
             <p className="text-uppercase fw-semibold tracking-wider mb-3 reveal" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
-              Analytics pour portfolios & Formation Freelance Vendeur d'Élite
+              Folio Dev · Analytics pour portfolios développeurs
             </p>
             <h1 className="display-3 lh-sm mb-4 reveal reveal-delay-1">
-              Comprends qui visite <br className="d-none d-md-block" />
+              Folio Dev : comprends qui visite <br className="d-none d-md-block" />
               ton portfolio
             </h1>
             <p className="lead text-body-custom mb-5 mx-auto fs-5 reveal reveal-delay-2" style={{ maxWidth: '600px' }}>
@@ -81,6 +81,8 @@ const Hero = ({ onStart, onFormation }) => {
               viewBox="0 0 800 250" 
               className="w-100" 
               style={{ maxWidth: '900px', height: 'auto' }}
+              role="img"
+              aria-label="Parcours d'un visiteur sur un portfolio suivi par Folio Dev"
               preserveAspectRatio="xMidYMid meet"
             >
               {/* Path */}
