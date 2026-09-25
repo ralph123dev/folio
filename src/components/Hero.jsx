@@ -1,6 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
+const FREE_ACCESS_END = Date.parse('2026-09-27T23:59:59Z');
+
+const getTimeRemaining = () => Math.max(0, FREE_ACCESS_END - Date.now());
+
+const formatTimeRemaining = (timeRemaining) => {
+  const totalSeconds = Math.floor(timeRemaining / 1000);
+
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+};
 
 const Hero = ({ onStart, onFormation }) => {
+  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTimeRemaining(getTimeRemaining());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const countdown = formatTimeRemaining(timeRemaining);
+
   return (
     <section className="py-5 mt-4 mt-lg-5 text-center">
       <div className="container">
@@ -18,6 +45,25 @@ const Hero = ({ onStart, onFormation }) => {
             <p className="lead text-body-custom mb-5 mx-auto fs-5 reveal reveal-delay-2" style={{ maxWidth: '600px' }}>
               Ne navigue plus à l'aveugle. Suis le parcours de tes visiteurs, identifie les projets qui captivent, et apprends à vendre tes services à l'international.
             </p>
+            <div className="free-access-countdown reveal reveal-delay-3" aria-live="polite">
+              <div className="free-access-countdown-copy">
+                <span className="free-access-countdown-badge">Accès gratuit pendant 2 jours</span>
+                <p className="mb-0">Durant cette période, toutes les fonctionnalités du site sont gratuites : rien n'est premium.</p>
+              </div>
+              <div className="countdown-grid" aria-label="Temps restant de l'accès gratuit">
+                {[
+                  ['days', 'Jours'],
+                  ['hours', 'Heures'],
+                  ['minutes', 'Minutes'],
+                  ['seconds', 'Secondes'],
+                ].map(([unit, label]) => (
+                  <div className="countdown-unit" key={unit}>
+                    <strong>{String(countdown[unit]).padStart(2, '0')}</strong>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="d-flex flex-wrap justify-content-center gap-2 reveal reveal-delay-3">
               <button type="button" onClick={onStart} className="btn btn-primary-custom btn-lg px-5 py-3 shadow-sm">
                 Créer mon compte gratuitement

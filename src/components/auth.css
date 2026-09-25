@@ -177,6 +177,18 @@
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
+  .folio-google-btn,
+  .folio-google-btn > div,
+  .folio-google-btn iframe {
+    width: 100% !important;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .folio-google-btn iframe {
+    display: block;
+  }
+
 .folio-social-btn img {
     border-radius: 4px;
     object-fit: cover;
@@ -191,6 +203,16 @@
 .folio-social-btn:disabled {
     cursor: not-allowed;
     opacity: .6;
+}
+
+@media (max-width: 420px) {
+  .folio-auth-wrapper {
+    padding: 1rem 0.75rem;
+  }
+
+  .folio-auth-card {
+    padding: 2rem 1rem 1.5rem;
+  }
 }
 
 /* Styles pour la page d'onboarding */
