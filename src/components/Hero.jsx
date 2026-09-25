@@ -47,8 +47,7 @@ const Hero = ({ onStart, onFormation }) => {
             </p>
             <div className="free-access-countdown reveal reveal-delay-3" aria-live="polite">
               <div className="free-access-countdown-copy">
-                <span className="free-access-countdown-badge">Accès gratuit pendant 2 jours</span>
-                <p className="mb-0">Durant cette période, toutes les fonctionnalités du site sont gratuites : rien n'est premium.</p>
+                <p className="mb-0">Une fois le compte à rebours terminé, les fonctionnalités Freemium seront disponibles.</p>
               </div>
               <div className="countdown-grid" aria-label="Temps restant de l'accès gratuit">
                 {[
