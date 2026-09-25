@@ -1138,6 +1138,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
         <MyProfilesModal
           userId={userData.id}
           userName={userData.nom_complet}
+          isProMax={isProMax}
           onClose={() => setShowMyProfilesModal(false)}
         />
       )}

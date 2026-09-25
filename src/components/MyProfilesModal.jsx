@@ -24,7 +24,7 @@ const emptyForm = {
   annees_experience: '',
 };
 
-export default function MyProfilesModal({ userId, userName, onClose }) {
+export default function MyProfilesModal({ userId, userName, isProMax, onClose }) {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -186,7 +186,7 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
       prenom: formData.prenom.trim(),
       nom_freelancer: formData.nom_freelancer.trim(),
       photo_url: formData.photo_url.trim() || null,
-      video_url: formData.video_url.trim() || null,
+      video_url: isProMax ? (formData.video_url.trim() || null) : null,
       cv_url: formData.cv_url.trim() || null,
       age: formData.age ? Number(formData.age) : null,
       date_naissance: formData.date_naissance || null,
@@ -260,6 +260,7 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
               saving={saving}
               videoProgress={videoProgress}
               cvProgress={cvProgress}
+              isProMax={isProMax}
               isEditing={Boolean(editingProfile)}
               onChange={handleChange}
               onPhotoFileChange={handlePhotoFileChange}
@@ -313,7 +314,7 @@ export default function MyProfilesModal({ userId, userName, onClose }) {
   );
 }
 
-function ProfileForm({ formData, saving, videoProgress, cvProgress, isEditing, onChange, onPhotoFileChange, onVideoFileChange, onCvFileChange, onSubmit, onCancel }) {
+function ProfileForm({ formData, saving, videoProgress, cvProgress, isProMax, isEditing, onChange, onPhotoFileChange, onVideoFileChange, onCvFileChange, onSubmit, onCancel }) {
   const isUploadingMedia = (videoProgress > 0 && videoProgress < 100) || (cvProgress > 0 && cvProgress < 100);
 
   return (
@@ -360,10 +361,12 @@ function ProfileForm({ formData, saving, videoProgress, cvProgress, isEditing, o
               <i className="bi bi-image me-1"></i>Photo
               <input type="file" accept="image/*" className="d-none" onChange={onPhotoFileChange} disabled={saving || isUploadingMedia} />
             </label>
-            <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
-              <i className="bi bi-camera-reels me-1"></i>Vidéo (ProMax)
-              <input type="file" accept="video/*" className="d-none" onChange={onVideoFileChange} disabled={saving || isUploadingMedia} />
-            </label>
+            {isProMax && (
+              <label className="btn btn-sm btn-outline-warning" style={{ color: '#FF7A00', borderColor: '#FF7A00' }}>
+                <i className="bi bi-camera-reels me-1"></i>Vidéo (ProMax)
+                <input type="file" accept="video/*" className="d-none" onChange={onVideoFileChange} disabled={saving || isUploadingMedia} />
+              </label>
+            )}
             <label className="btn btn-sm btn-outline-success">
               <i className="bi bi-file-earmark-pdf me-1"></i>CV (ProMax)
               <input type="file" accept=".pdf,.doc,.docx" className="d-none" onChange={onCvFileChange} disabled={saving || isUploadingMedia} />
