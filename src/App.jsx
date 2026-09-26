@@ -13,6 +13,7 @@ import Freelancers from './components/Freelancers';
 import FormationLanding from './components/FormationLanding';
 import FormationReader from './components/FormationReader';
 import { useScrollReveal } from './hooks/useScrollReveal';
+import { useAuthListener } from './hooks/useAuthListener';
 import { supabase } from './supabaseClient';
 import partenaireImage from './assets/partenaire/partenaire1.jpg';
 
@@ -38,6 +39,7 @@ function App() {
   });
 
   useScrollReveal([introFinished, showAuth]);
+  useAuthListener();
 
   // Helper pour réinitialiser toutes les vues
   const resetAllViews = () => {

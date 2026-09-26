@@ -13,6 +13,7 @@ const DEVELOPMENT_ORIGINS = [
 
 const FALLBACK_ORIGINS = [
   "https://folio.com",
+  "https://foliodev.site",
   "https://www.foliodev.site",
   "https://foliodev-kappa.vercel.app",
 ];
