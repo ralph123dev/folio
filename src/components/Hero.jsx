@@ -1,33 +1,7 @@
-import React, { useEffect, useState } from 'react';
-
-const FREE_ACCESS_END = Date.parse('2026-09-27T23:59:59Z');
-
-const getTimeRemaining = () => Math.max(0, FREE_ACCESS_END - Date.now());
-
-const formatTimeRemaining = (timeRemaining) => {
-  const totalSeconds = Math.floor(timeRemaining / 1000);
-
-  return {
-    days: Math.floor(totalSeconds / 86400),
-    hours: Math.floor((totalSeconds % 86400) / 3600),
-    minutes: Math.floor((totalSeconds % 3600) / 60),
-    seconds: totalSeconds % 60,
-  };
-};
+import React from 'react';
+import FreeAccessCountdown from './FreeAccessCountdown';
 
 const Hero = ({ onStart, onFormation }) => {
-  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setTimeRemaining(getTimeRemaining());
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const countdown = formatTimeRemaining(timeRemaining);
-
   return (
     <section className="py-5 mt-4 mt-lg-5 text-center">
       <div className="container">
@@ -49,19 +23,7 @@ const Hero = ({ onStart, onFormation }) => {
               <div className="free-access-countdown-copy">
                 <p className="mb-0">Une fois le compte à rebours terminé, les fonctionnalités Freemium seront disponibles.</p>
               </div>
-              <div className="countdown-grid" aria-label="Temps restant de l'accès gratuit">
-                {[
-                  ['days', 'Jours'],
-                  ['hours', 'Heures'],
-                  ['minutes', 'Minutes'],
-                  ['seconds', 'Secondes'],
-                ].map(([unit, label]) => (
-                  <div className="countdown-unit" key={unit}>
-                    <strong>{String(countdown[unit]).padStart(2, '0')}</strong>
-                    <span>{label}</span>
-                  </div>
-                ))}
-              </div>
+              <FreeAccessCountdown />
             </div>
             <div className="d-flex flex-wrap justify-content-center gap-2 reveal reveal-delay-3">
               <button type="button" onClick={onStart} className="btn btn-primary-custom btn-lg px-5 py-3 shadow-sm">

@@ -7,6 +7,7 @@ import { uploadToCloudinary } from '../lib/cloudinary';
 import { analyzePortfolioWithGemini, AVAILABLE_MODELS } from '../lib/gemini';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
+import FreeAccessCountdown from './FreeAccessCountdown';
 
 export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -543,10 +544,16 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       {/* Navbar du dashboard */}
       <nav className="dashboard-nav navbar navbar-expand-lg py-3" style={{ backgroundColor: 'white', borderBottom: '1px solid rgba(38, 33, 92, 0.08)' }}>
         <div className="container-fluid px-4">
-          <span className="navbar-brand font-serif fs-4" style={{ color: 'var(--folio-title)' }}>
-            <i className="bi bi-grid-1x2 me-2" style={{ color: 'var(--folio-primary)' }}></i>
-            Folio
-          </span>
+          <div className="dashboard-brand-group">
+            <span className="navbar-brand font-serif fs-4 mb-0" style={{ color: 'var(--folio-title)' }}>
+              <i className="bi bi-grid-1x2 me-2" style={{ color: 'var(--folio-primary)' }}></i>
+              Folio
+            </span>
+            <div className="dashboard-countdown" aria-label="Compte à rebours de la période Freemium">
+              <span className="dashboard-countdown-label">Freemium dans</span>
+              <FreeAccessCountdown compact />
+            </div>
+          </div>
           <div className="d-flex align-items-center gap-3">
             {/* Menu Déroulant du Profil */}
             <div className="dropdown">
