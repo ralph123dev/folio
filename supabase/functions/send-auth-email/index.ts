@@ -26,6 +26,25 @@ const emailLayout = (title: string, content: string) => `
   </div>
 `;
 
+const renderLocation = (value: unknown) => {
+  if (!value || typeof value !== "object") return "";
+
+  const location = value as Record<string, unknown>;
+  const ip = typeof location.ip === "string" ? location.ip.trim().slice(0, 100) : "";
+  const city = typeof location.city === "string" ? location.city.trim().slice(0, 100) : "";
+  const country = typeof location.country_name === "string" ? location.country_name.trim().slice(0, 100) : "";
+  const continent = typeof location.continent_name === "string" ? location.continent_name.trim().slice(0, 100) : "";
+
+  if (!ip && !city && !country && !continent) return "";
+
+  return `<div style="margin-top:24px;padding:16px 18px;border-radius:10px;background:#f5f4fc;color:#3c3489;font-size:14px;line-height:1.8;">
+    <strong style="color:#26215c;">Informations de connexion</strong><br />
+    Adresse IP : ${escapeHtml(ip || "Non disponible")}<br />
+    Localisation : ${escapeHtml(city || "Non disponible")}, ${escapeHtml(country || "Non disponible")}<br />
+    Continent : ${escapeHtml(continent || "Non disponible")}
+  </div>`;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handlePreflight(req);
   if (req.method !== "POST") return jsonResponse(req, { error: "Méthode non autorisée" }, 405);
@@ -58,6 +77,7 @@ Deno.serve(async (req) => {
     const email = user.email;
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const greeting = name ? `Bonjour ${escapeHtml(name)},` : "Bonjour,";
+    const locationHtml = renderLocation(body?.location);
     const resend = new Resend(resendApiKey);
 
     if (type === "welcome") {
@@ -65,7 +85,7 @@ Deno.serve(async (req) => {
         from: "Folio Dev <noreply@foliodev.site>",
         to: [email],
         subject: "Bienvenue sur Folio Dev !",
-        html: emailLayout("Bienvenue sur Folio Dev !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu viens de créer ton compte. Des nouvelles fonctionnalités arrivent très bientôt.</p>`),
+        html: emailLayout("Bienvenue sur Folio Dev !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu viens de créer ton compte. Des nouvelles fonctionnalités arrivent très bientôt.</p>${locationHtml}`),
       });
       if (error) throw error;
     } else {
@@ -79,7 +99,7 @@ Deno.serve(async (req) => {
         from: "Folio Dev <noreply@foliodev.site>",
         to: [email],
         subject: "Bon retour sur Folio Dev !",
-        html: emailLayout("Bon retour !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu t’es connecté à Folio Dev le ${escapeHtml(formattedDate)}.</p>`),
+        html: emailLayout("Bon retour !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu t’es connecté à Folio Dev le ${escapeHtml(formattedDate)}.</p>${locationHtml}`),
       });
       if (error) throw error;
     }
