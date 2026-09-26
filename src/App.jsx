@@ -359,7 +359,7 @@ function App() {
           user={user} 
           onStart={() => { setAuthMode('signup'); setShowAuth(true); setShowFreelancers(false); }} 
         />
-        <Footer />
+        <Footer onFormation={handleFormation} />
       </div>
     );
   }
@@ -423,7 +423,7 @@ function App() {
         </section>
         <CtaSection onStart={() => { setAuthMode('signup'); setShowAuth(true); }} onFormation={handleFormation} />
       </main>
-      <Footer />
+      <Footer onFormation={handleFormation} />
     </div>
   );
 }
