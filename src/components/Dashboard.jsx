@@ -2623,7 +2623,7 @@ const TIERS = [
   { id: 't2', label: '1 300', sublabel: 'contacts prêts à visiter votre profil', count: '1 300', contactCount: 1300, price: 200, color: '#8b5cf6' },
   { id: 't3', label: '15 000', sublabel: 'contacts prêts à visiter votre profil', count: '15k', contactCount: 15000, price: 300, color: '#7c3aed' },
   { id: 't4', label: '31 000', sublabel: 'contacts prêts à visiter votre profil', count: '31k', contactCount: 31000, price: 1000, color: '#5b21b6' },
-  { id: 't5', label: '10 000', sublabel: 'contacts prêts à visiter votre profil', count: '10k', contactCount: 10000, price: 2100, color: '#4c1d95' },
+  { id: 't5', label: '100 000', sublabel: 'contacts prêts à visiter votre profil', count: '10k', contactCount: 10000, price: 2100, color: '#4c1d95' },
 ];
 
 const getBoostContactKey = (contact) => {

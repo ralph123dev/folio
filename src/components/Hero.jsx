@@ -43,7 +43,7 @@ const Hero = ({ onStart, onFormation }) => {
               ton portfolio
             </h1>
             <p className="lead text-body-custom mb-5 mx-auto fs-5 reveal reveal-delay-2" style={{ maxWidth: '600px' }}>
-              Ne navigue plus à l'aveugle. Suis le parcours de tes visiteurs, identifie les projets qui captivent, et apprends à vendre tes services à l'international.
+              N'attendez plus que le bon client arrive, trouvez le directement en dm
             </p>
             <div className="free-access-countdown reveal reveal-delay-3" aria-live="polite">
               <div className="free-access-countdown-copy">
