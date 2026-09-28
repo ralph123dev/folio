@@ -259,9 +259,9 @@ const Features = ({ user, onStart, onDashboard }) => {
         <div id="pricing" className="pt-5 mt-5 border-top">
           <div className="text-center mb-5 reveal">
             <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
-              Des offres pensées pour grandir
+              Les tarifs
             </p>
-            <h2 className="display-5 font-serif mb-3">Choisis ton accélérateur</h2>
+            <h2 className="display-5 font-serif mb-3">Des offres pensées pour propulser ton activité.</h2>
             <p className="lead text-body-custom mx-auto mb-0" style={{ maxWidth: '650px' }}>
               Des outils simples et concrets pour trouver des clients, améliorer ta visibilité et développer ta présence en ligne.
             </p>
@@ -274,9 +274,9 @@ const Features = ({ user, onStart, onDashboard }) => {
                   <div className="pricing-icon"><i className="bi bi-stars"></i></div>
                   <span className="badge pricing-badge">Essai gratuit</span>
                 </div>
-                <h3 className="font-serif h4 mb-3">Découvrir Folio</h3>
+                <h3 className="font-serif h4 mb-3">Offre gratuite</h3>
                 <p className="text-body-custom flex-grow-1 mb-4">
-                  Teste Folio sans engagement avec un aperçu de ton trafic, les statistiques essentielles et ton espace personnel.
+                  Teste l'outil sans engagement. Crée ton portfolio en 5 minutes et accède aux statistiques de visites essentielles.
                 </p>
                 <div className="pricing-price mb-4">0 <small>F / 7 jours</small></div>
                 <button
@@ -285,7 +285,7 @@ const Features = ({ user, onStart, onDashboard }) => {
                   onClick={user ? onDashboard : onStart}
                 >
                   <i className={`bi ${user ? 'bi-grid-1x2 me-2' : 'bi-person-plus me-2'}`}></i>
-                  {user ? 'Accéder à mon tableau de bord' : "S'inscrire"}
+                  {user ? 'Accéder à mon tableau de bord' : "S'inscrire gratuitement"}
                 </button>
               </article>
             </div>
@@ -294,14 +294,16 @@ const Features = ({ user, onStart, onDashboard }) => {
               <article className="pricing-card pricing-card-featured h-100 d-flex flex-column p-4 p-xl-5">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div className="pricing-icon"><i className="bi bi-search-heart-fill"></i></div>
-                  <span className="badge pricing-badge">Visibilité</span>
+                  <span className="badge pricing-badge">Premium IA</span>
                 </div>
-                <h3 className="font-serif h4 mb-3">Optimiser vos profils de Freelancer</h3>
+                <h3 className="font-serif h4 mb-3">Premium IA</h3>
                 <p className="text-body-custom flex-grow-1 mb-4">
-                  Créez un profil freelance bien optimisé pour le SEO et mettez mieux en valeur vos activités auprès des clients.
+                  Débloque la puissance de l'Intelligence Artificielle. Analyse automatique de ton profil, génération d'images uniques, outils de comparaison et alertes de missions ciblées directement par e-mail.
                 </p>
-                <div className="pricing-price mb-4">2 500 <small>F / mois</small></div>
-                <button type="button" className="btn btn-primary-custom w-100">Choisir cette offre</button>
+                <div className="pricing-price mb-4">7 864 <small>F / mois</small></div>
+                <button type="button" className="btn btn-primary-custom w-100" onClick={user ? onDashboard : onStart}>
+                  Passer à la vitesse supérieure
+                </button>
               </article>
             </div>
 
@@ -311,7 +313,7 @@ const Features = ({ user, onStart, onDashboard }) => {
                   <div className="pricing-icon"><i className="bi bi-people-fill"></i></div>
                   <span className="badge pricing-badge">Acquisition</span>
                 </div>
-                <h3 className="font-serif h4 mb-3">Trouver des clients</h3>
+                <h3 className="font-serif h4 mb-3">Premium Acquisition</h3>
                 <p className="text-body-custom flex-grow-1 mb-4">
                   Accède à un réseau de plus de 31 000 contacts qualifiés à prospecter ou à toucher avec tes campagnes publicitaires. Donne à ton business les bonnes opportunités pour décoller.
                 </p>

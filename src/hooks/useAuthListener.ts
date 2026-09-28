@@ -11,8 +11,9 @@ export const useAuthListener = (): void => {
   useEffect(() => {
     let active = true;
     const handledEvents = new Set<string>();
+    const welcomedUsers = new Set<string>();
 
-    const handleAuthEvent = (event: string, session: { access_token?: string; user?: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null } | null) => {
+    const handleAuthEvent = (event: string, session: { access_token?: string; user?: { id: string; email?: string; user_metadata?: Record<string, unknown>; created_at?: string; last_sign_in_at?: string | null } | null } | null) => {
       const user = session?.user;
       if (!active || !user?.email || (event !== 'SIGNED_UP' && event !== 'SIGNED_IN')) return;
 
@@ -24,28 +25,21 @@ export const useAuthListener = (): void => {
 
       window.setTimeout(() => {
         void (async () => {
-          if (event === 'SIGNED_UP') {
-            sendWelcomeEmail(user.email!, getUserName(user));
+          const createdAt = Date.parse(user.created_at || '');
+          const lastSignInAt = Date.parse(user.last_sign_in_at || '');
+          const isNewAccount = Number.isFinite(createdAt)
+            && Number.isFinite(lastSignInAt)
+            && Math.abs(lastSignInAt - createdAt) < 60_000;
+
+          if (event === 'SIGNED_UP' || isNewAccount) {
+            if (!welcomedUsers.has(user.id)) {
+              welcomedUsers.add(user.id);
+              sendWelcomeEmail(user.email!, getUserName(user));
+            }
             return;
           }
 
-          // OAuth peut émettre SIGNED_IN pour un compte tout juste créé.
-          const { data: profile, error } = await supabase
-            .from('profils')
-            .select('id')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (error) {
-            console.error('Impossible de vérifier le type de connexion Folio Dev :', error);
-            return;
-          }
-
-          if (!profile) {
-            sendWelcomeEmail(user.email!, getUserName(user));
-          } else {
-            sendLoginEmail(user.email!, getUserName(user), new Date());
-          }
+          sendLoginEmail(user.email!, getUserName(user), new Date());
         })();
       }, 0);
     };

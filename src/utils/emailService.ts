@@ -64,7 +64,7 @@ const sendEmailWithLocation = async (payload: Record<string, unknown>): Promise<
 export const sendWelcomeEmail = (userEmail: string, userName = ''): void => {
   if (!userEmail) return;
 
-  void sendEmailWithLocation({
+  void invokeEmailFunction({
     type: 'welcome',
     email: userEmail,
     name: userName,

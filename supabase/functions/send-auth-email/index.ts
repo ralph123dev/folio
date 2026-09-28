@@ -84,8 +84,8 @@ Deno.serve(async (req) => {
       const { error } = await resend.emails.send({
         from: "Folio Dev <noreply@foliodev.site>",
         to: [email],
-        subject: "Bienvenue sur Folio Dev !",
-        html: emailLayout("Bienvenue sur Folio Dev !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu viens de créer ton compte. Des nouvelles fonctionnalités arrivent très bientôt.</p>${locationHtml}`),
+        subject: "Bienvenue sur Foliodev !",
+        html: emailLayout("Bienvenue sur Foliodev !", `<p style="font-size:16px;line-height:1.6;">Ton portfolio est prêt.</p>`),
       });
       if (error) throw error;
     } else {
