@@ -45,7 +45,7 @@ const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onFor
               </>
             )}
           </ul>
-          <div className="d-flex align-items-center gap-4 mt-3 mt-lg-0">
+          <div className="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-4 mt-3 mt-lg-0">
             {user ? (
               <>
                 <button type="button" onClick={onDashboard} className="btn btn-link text-decoration-none text-title fw-medium">Tableau de bord</button>

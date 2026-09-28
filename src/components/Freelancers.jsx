@@ -66,6 +66,29 @@ function FreelancerMediaAvatar({ videoUrl, photoUrl, alt, isProMax }) {
   );
 }
 
+function FreelancerSkeletonCard() {
+  return (
+    <article className="freelancer-skeleton-card" aria-hidden="true">
+      <div className="freelancer-skeleton-block freelancer-skeleton-avatar" />
+      <div className="freelancer-skeleton-content">
+        <div className="freelancer-skeleton-block freelancer-skeleton-title" />
+        <div className="freelancer-skeleton-block freelancer-skeleton-subtitle" />
+        <div className="freelancer-skeleton-description">
+          <div className="freelancer-skeleton-block freelancer-skeleton-line" />
+          <div className="freelancer-skeleton-block freelancer-skeleton-line" />
+          <div className="freelancer-skeleton-block freelancer-skeleton-line freelancer-skeleton-line-short" />
+        </div>
+        <div className="freelancer-skeleton-tags">
+          <div className="freelancer-skeleton-block freelancer-skeleton-tag" />
+          <div className="freelancer-skeleton-block freelancer-skeleton-tag" />
+          <div className="freelancer-skeleton-block freelancer-skeleton-tag" />
+        </div>
+        <div className="freelancer-skeleton-block freelancer-skeleton-button" />
+      </div>
+    </article>
+  );
+}
+
 export default function Freelancers({ user, onStart }) {
   const [freelancers, setFreelancers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -162,17 +185,23 @@ export default function Freelancers({ user, onStart }) {
   const fetchFreelancers = async () => {
     setLoading(true);
     setFetchError('');
-    const { data, error } = await supabase
-      .from('freelancers')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('freelancers')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Erreur lors du chargement des freelancers:', error);
+        setFetchError('Les profils freelancers ne peuvent pas être chargés pour le moment.');
+      } else if (data) {
+        setFreelancers(data);
+      }
+    } catch (error) {
       console.error('Erreur lors du chargement des freelancers:', error);
       setFetchError('Les profils freelancers ne peuvent pas être chargés pour le moment.');
-    } else if (data) {
-      setFreelancers(data);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchRatingCounts = async () => {
@@ -387,10 +416,13 @@ export default function Freelancers({ user, onStart }) {
           </div>
           
           {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Chargement...</span>
-              </div>
+            <div className="row g-4" role="status" aria-live="polite" aria-label="Chargement des profils freelancers">
+              {Array.from({ length: 6 }, (_, index) => (
+                <div className="col-md-4" key={index}>
+                  <FreelancerSkeletonCard />
+                </div>
+              ))}
+              <span className="visually-hidden">Chargement des profils freelancers...</span>
             </div>
           ) : fetchError ? (
             <div className="text-center text-muted">
