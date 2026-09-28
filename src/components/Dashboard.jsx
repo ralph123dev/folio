@@ -688,7 +688,7 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                     </label>
                   </div>
                   <p className="text-muted mb-0" style={{ fontSize: '0.75rem' }}>
-                    Envoi dès 20 h 20 (heure de Douala), par ordre de connexion récente. Désinscription depuis chaque e-mail.
+                    Envoi dès 20 h 30 (heure de Douala), par ordre de connexion récente. Désinscription depuis chaque e-mail.
                   </p>
                   {dailyEmailPreferenceError && <p className="text-danger small mt-2 mb-0" role="alert">{dailyEmailPreferenceError}</p>}
                 </li>
