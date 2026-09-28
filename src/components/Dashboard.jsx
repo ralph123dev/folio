@@ -65,6 +65,10 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('folio-dashboard-theme') || 'light');
   const [profileData, setProfileData] = useState(null);
+  const [dailyEmailOptedIn, setDailyEmailOptedIn] = useState(false);
+  const [dailyEmailPreferenceLoading, setDailyEmailPreferenceLoading] = useState(true);
+  const [dailyEmailPreferenceSaving, setDailyEmailPreferenceSaving] = useState(false);
+  const [dailyEmailPreferenceError, setDailyEmailPreferenceError] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [boostContacts, setBoostContacts] = useState(() => {
     try {
@@ -189,6 +193,49 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
       supabase.removeChannel(channel);
     };
   }, [userData.id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDailyEmailPreference = async () => {
+      const { data, error } = await supabase
+        .from('daily_account_email_preferences')
+        .select('opted_in')
+        .eq('user_id', userData.id)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error) {
+        console.error('Impossible de charger la préférence d’e-mail quotidien :', error);
+        setDailyEmailPreferenceError('Préférence indisponible pour le moment.');
+      } else {
+        setDailyEmailOptedIn(Boolean(data?.opted_in));
+        setDailyEmailPreferenceError('');
+      }
+      setDailyEmailPreferenceLoading(false);
+    };
+
+    void loadDailyEmailPreference();
+    return () => { active = false; };
+  }, [userData.id]);
+
+  const handleDailyEmailPreferenceChange = async (event) => {
+    const optedIn = event.target.checked;
+    setDailyEmailPreferenceSaving(true);
+    setDailyEmailPreferenceError('');
+
+    const { error } = await supabase.rpc('set_daily_account_email_preference', {
+      p_opted_in: optedIn,
+    });
+
+    if (error) {
+      console.error('Impossible de mettre à jour la préférence d’e-mail quotidien :', error);
+      setDailyEmailPreferenceError('Enregistrement impossible. Réessaie plus tard.');
+    } else {
+      setDailyEmailOptedIn(optedIn);
+    }
+    setDailyEmailPreferenceSaving(false);
+  };
 
   const triggerFireworks = () => {
     const duration = 4 * 1000;
@@ -624,6 +671,26 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
                       <i className="bi bi-moon me-1"></i>Dark
                     </button>
                   </div>
+                </li>
+                <li className="px-3 py-2">
+                  <div className="form-check form-switch mb-1">
+                    <input
+                      id="daily-account-email-opt-in"
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      checked={dailyEmailOptedIn}
+                      disabled={dailyEmailPreferenceLoading || dailyEmailPreferenceSaving}
+                      onChange={handleDailyEmailPreferenceChange}
+                    />
+                    <label className="form-check-label text-body-custom small" htmlFor="daily-account-email-opt-in">
+                      Recevoir des missions par e-mail
+                    </label>
+                  </div>
+                  <p className="text-muted mb-0" style={{ fontSize: '0.75rem' }}>
+                    Un message chaque soir à 20 h (heure de Douala). Désinscription depuis chaque e-mail.
+                  </p>
+                  {dailyEmailPreferenceError && <p className="text-danger small mt-2 mb-0" role="alert">{dailyEmailPreferenceError}</p>}
                 </li>
                 <li>
                   <button className="dropdown-item py-2 text-primary fw-medium" onClick={() => setShowOptimModal(true)}>

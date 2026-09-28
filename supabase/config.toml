@@ -38,3 +38,13 @@ entrypoint = "./functions/analyze-portfolio/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/get-contact-boost-contacts/index.ts"
+
+[functions.daily-account-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/daily-account-email/index.ts"
+
+[functions.daily-email-unsubscribe]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/daily-email-unsubscribe/index.ts"
