@@ -61,7 +61,7 @@ const Footer = ({ onFormation }) => {
               Folio Dev est la plateforme d'analytics conçue pour les développeurs et les professionnels du digital. Comprends ton audience et développe ta marque personnelle.
             </p>
             <div className="d-flex gap-3">
-              <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-body-custom text-decoration-none fs-5" aria-label="Facebook"><i className="bi bi-facebook"></i></a>
+              <a href="https://web.facebook.com/profile.php?id=61592481980652" target="_blank" rel="noopener noreferrer" className="text-body-custom text-decoration-none fs-5" aria-label="Facebook"><i className="bi bi-facebook"></i></a>
               <a href="#" className="text-body-custom text-decoration-none fs-5" aria-label="Instagram"><i className="bi bi-instagram"></i></a>
               <a href="https://wa.me/237689476780" target="_blank" rel="noopener noreferrer" className="text-body-custom text-decoration-none fs-5" aria-label="WhatsApp"><i className="bi bi-whatsapp"></i></a>
             </div>

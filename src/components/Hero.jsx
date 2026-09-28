@@ -21,7 +21,7 @@ const Hero = ({ onStart, onFormation }) => {
             </p>
             <div className="free-access-countdown reveal reveal-delay-3" aria-live="polite">
               <div className="free-access-countdown-copy">
-                <p className="mb-0">Une fois le compte à rebours terminé, les fonctionnalités Freemium seront disponibles.</p>
+                <p className="mb-0">Compte à rebours terminé, fonctionalités disponible le mardi à 08h GMT</p>
               </div>
               <FreeAccessCountdown />
             </div>
