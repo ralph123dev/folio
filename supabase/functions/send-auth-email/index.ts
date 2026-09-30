@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         from: "Folio Dev <noreply@foliodev.site>",
         to: [email],
         subject: "Bon retour sur Folio Dev !",
-        html: emailLayout("Bon retour !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu t’es connecté à Folio Dev le ${escapeHtml(formattedDate)}.</p>${locationHtml}`),
+        html: emailLayout("Bon retour !", `<p style="font-size:16px;line-height:1.6;">${greeting}</p><p style="font-size:16px;line-height:1.6;">Tu t’es connecté à Folio Dev le ${escapeHtml(formattedDate)}.</p><p style="font-size:16px;line-height:1.6;"><strong>Débloque 100 % de tes compétences avec Foliodev Premium à seulement 11,99 €.</strong></p>${locationHtml}`),
       });
       if (error) throw error;
     }

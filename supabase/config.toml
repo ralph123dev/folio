@@ -48,3 +48,8 @@ entrypoint = "./functions/daily-account-email/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/daily-email-unsubscribe/index.ts"
+
+[functions.notify-promax-client-request]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/notify-promax-client-request/index.ts"

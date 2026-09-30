@@ -1,5 +1,4 @@
 import React from 'react';
-import FreeAccessCountdown from './FreeAccessCountdown';
 
 const Hero = ({ onStart, onFormation }) => {
   return (
@@ -21,12 +20,6 @@ const Hero = ({ onStart, onFormation }) => {
             <p className="text-body-custom mb-5 mx-auto fs-5 reveal reveal-delay-2" style={{ maxWidth: '700px' }}>
               Créer un portfolio intelligent en 5 minutes, analyse ton audience en temps réel et reçois des alertes de missions ciblées directement dans ta boîte mail.
             </p>
-            <div className="free-access-countdown reveal reveal-delay-3" aria-live="polite">
-              <div className="free-access-countdown-copy">
-                <p className="mb-0">Compte à rebours terminé, fonctionalités disponible le mardi à 08h GMT</p>
-              </div>
-              <FreeAccessCountdown />
-            </div>
             <div className="d-flex flex-wrap justify-content-center gap-2 reveal reveal-delay-3">
               <button type="button" onClick={onStart} className="btn btn-primary-custom btn-lg px-5 py-3 shadow-sm">
                 Créer mon portfolio gratuit

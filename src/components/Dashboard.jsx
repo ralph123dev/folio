@@ -7,7 +7,6 @@ import { uploadToCloudinary } from '../lib/cloudinary';
 import { analyzePortfolioWithGemini, AVAILABLE_MODELS } from '../lib/gemini';
 import './auth.css';
 import MyProfilesModal from './MyProfilesModal';
-import FreeAccessCountdown from './FreeAccessCountdown';
 
 export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -596,10 +595,6 @@ export default function Dashboard({ userData, onLogout, onGoFreelancer }) {
               <i className="bi bi-grid-1x2 me-2" style={{ color: 'var(--folio-primary)' }}></i>
               Folio
             </span>
-            <div className="dashboard-countdown" aria-label="Compte à rebours de la période Freemium">
-              <span className="dashboard-countdown-label">Freemium dans</span>
-              <FreeAccessCountdown compact />
-            </div>
           </div>
           <div className="d-flex align-items-center gap-3">
             {/* Menu Déroulant du Profil */}
