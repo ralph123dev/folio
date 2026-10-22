@@ -7,12 +7,14 @@ export const AVAILABLE_MODELS = [
   { id: 'gemini-3.6-flash', label: 'Modèle Avancé 3.6', description: 'Raisonnement approfondi' },
 ];
 
+const DEFAULT_MODEL = AVAILABLE_MODELS[0].id;
+
 export const analyzePortfolioWithGemini = async ({
   portfolioUrl,
   name,
   profession,
   description,
-  selectedModel = 'gemini-3.5-flash-lite'
+  selectedModel = DEFAULT_MODEL
 }) => {
   const rawKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.gemini_api_key || '';
   const apiKey = (rawKey || '').replace(/["'\r\n]/g, '').trim();
@@ -45,7 +47,15 @@ Génère une réponse structurée au format JSON strict (SANS balises markdown a
 }`;
 
   // Tenter en premier le modèle choisi par l'utilisateur
-  const fallbackList = Array.from(new Set([selectedModel, 'gemini-3.5-flash-lite', 'gemini-3.6-flash']));
+  const requestedModel = typeof selectedModel === 'string'
+    ? selectedModel
+    : selectedModel && typeof selectedModel === 'object'
+      ? selectedModel.id
+      : null;
+  const primaryModel = AVAILABLE_MODELS.some(({ id }) => id === requestedModel)
+    ? requestedModel
+    : DEFAULT_MODEL;
+  const fallbackList = Array.from(new Set([primaryModel, ...AVAILABLE_MODELS.map(({ id }) => id)]));
   let lastError = null;
 
   for (const model of fallbackList) {
@@ -84,6 +94,9 @@ Génère une réponse structurée au format JSON strict (SANS balises markdown a
       }
     } catch (err) {
       console.warn(`Modèle ${model} échoué:`, err.message);
+      if (err.status === 401 || err.status === 403) {
+        throw err;
+      }
       lastError = err;
     }
   }
