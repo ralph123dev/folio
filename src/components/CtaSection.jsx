@@ -1,26 +1,6 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React from 'react';
-
 const CtaSection = ({ onStart, onFormation }) => {
-  return (
-    <section className="py-5" style={{ backgroundColor: 'var(--folio-bg)' }}>
-      <div className="container py-5">
-        <div className="text-center mx-auto reveal" style={{ maxWidth: '800px' }}>
-          <h2 className="display-4 font-serif mb-4">Prêt à faire décoller ton portfolio & tes ventes ?</h2>
-          <p className="lead text-body-custom mb-5 px-md-5">
-            Rejoins les développeurs qui ont arrêté de deviner et commencé à vendre leurs services au bon prix.
-          </p>
-          <div className="d-flex justify-content-center gap-3 flex-column flex-sm-row">
-            <button type="button" onClick={onStart} className="btn btn-primary-custom btn-lg px-5 py-3">
-              Créer mon compte
-            </button>
-            <button type="button" onClick={onFormation} className="btn btn-outline-custom btn-lg px-5 py-3 fw-bold">
-              <i className="bi bi-mortarboard-fill text-warning me-2"></i>Découvrir la Formation 🎓
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+    return (_jsx("section", { className: "py-5", style: { backgroundColor: 'var(--folio-bg)' }, children: _jsx("div", { className: "container py-5", children: _jsxs("div", { className: "text-center mx-auto reveal", style: { maxWidth: '800px' }, children: [_jsx("h2", { className: "display-4 font-serif mb-4", children: "Pr\u00EAt \u00E0 faire d\u00E9coller ton portfolio & tes ventes ?" }), _jsx("p", { className: "lead text-body-custom mb-5 px-md-5", children: "Rejoins les d\u00E9veloppeurs qui ont arr\u00EAt\u00E9 de deviner et commenc\u00E9 \u00E0 vendre leurs services au bon prix." }), _jsxs("div", { className: "d-flex justify-content-center gap-3 flex-column flex-sm-row", children: [_jsx("button", { type: "button", onClick: onStart, className: "btn btn-primary-custom btn-lg px-5 py-3", children: "Cr\u00E9er mon compte" }), _jsxs("button", { type: "button", onClick: onFormation, className: "btn btn-outline-custom btn-lg px-5 py-3 fw-bold", children: [_jsx("i", { className: "bi bi-mortarboard-fill text-warning me-2" }), "D\u00E9couvrir la Formation \uD83C\uDF93"] })] })] }) }) }));
 };
-
 export default CtaSection;

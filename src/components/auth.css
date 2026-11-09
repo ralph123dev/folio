@@ -215,7 +215,7 @@
   }
 }
 
-/* Styles pour la page d'onboarding */
+
 .btn-discovery {
   border: 1px solid #D3D1C7;
   background-color: #FFFFFF;
@@ -248,7 +248,7 @@
   color: #FFFFFF;
 }
 
-/* Dots animation */
+
 .onboarding-dot {
   width: 10px;
   height: 10px;
@@ -267,7 +267,7 @@
   }
 }
 
-/* Portfolio Optimization Modal */
+
 .optim-modal-overlay {
   position: fixed;
   inset: 0;
@@ -526,11 +526,9 @@
   }
 }
 
-/* =========================================================================
-   FREELANCER PROMAX & ORANGE BADGE STYLES
-   ========================================================================= */
 
-/* Orange Badge Hue Filter for verified badge icon */
+
+
 .badge-orange-img {
   filter: hue-rotate(180deg) saturate(3) brightness(1.1);
 }
@@ -553,7 +551,7 @@
   box-shadow: 0 6px 20px rgba(255, 122, 0, 0.15) !important;
 }
 
-/* Mobile Bottom Sheet for ProMax Modal */
+
 @media (max-width: 576px) {
   .promax-bottom-sheet-dialog {
     margin: 0 !important;

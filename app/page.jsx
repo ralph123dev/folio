@@ -1,63 +1,17 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import Link from 'next/link';
 import CategoryGrid from '../components/freelancers/CategoryGrid';
 import Footer from '../components/site/Footer';
 import Header from '../components/site/Header';
 import { getCategories } from '../lib/freelancers';
 import { PRIMARY_SPECIALTIES, categoryPath } from '../lib/site';
-
 export const revalidate = 3600;
-
 export default async function HomePage() {
-  const fetchedCategories = await getCategories();
-  const categories = fetchedCategories.length ? fetchedCategories : PRIMARY_SPECIALTIES.map((label) => ({
-    label,
-    slug: label,
-    count: 0,
-  }));
-
-  return (
-    <>
-      <Header />
-      <main>
-        <section className="landing-hero">
-          <div className="seo-container landing-hero__content">
-            <p className="eyebrow">Plateforme B2B de talents indépendants</p>
-            <h1>Trouvez le freelance qui fera avancer votre projet.</h1>
-            <p className="landing-hero__lead">Folio met les entreprises en relation avec des spécialistes du développement, du design et du digital, selon leur expertise, leur localisation et leurs services.</p>
-            <div className="landing-hero__actions">
-              <Link href="/freelancers" className="site-button">Parcourir les freelancers</Link>
-              <Link href="/espace?auth=signup" className="site-button site-button--outline">Publier mon profil</Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="seo-container landing-copy" id="comment-ca-marche" aria-labelledby="landing-copy-title">
-          <p className="eyebrow">Un sourcing plus simple</p>
-          <h2 id="landing-copy-title">Des compétences claires, des profils réellement exploitables</h2>
-          <p>Recruter un indépendant ne devrait pas commencer par des dizaines de messages sans réponse ni par des portfolios difficiles à comparer. Folio aide les équipes B2B, startups, agences et PME à identifier rapidement les personnes capables de livrer un site web, une application mobile, une identité visuelle, une interface produit ou une stratégie d’acquisition. Chaque profil réunit la spécialité du freelancer, son expérience, ses services, ses liens professionnels, sa zone d’intervention et, lorsqu’il est indiqué, son tarif de départ. Vous pouvez ainsi préparer un premier échange avec le bon contexte.</p>
-          <p>Pour les freelancers, Folio transforme un profil en page professionnelle facilement partageable. Une URL claire par spécialité et localisation permet à un développeur, un designer ou un expert SEO d’être trouvé par des prospects qui recherchent précisément ce savoir-faire. Les pages font également le lien vers les catégories métier pertinentes, afin de renforcer la découverte organique et de donner aux visiteurs plusieurs chemins vers les talents adaptés à leur besoin.</p>
-          <p>La plateforme est pensée pour des décisions concrètes : comparer une expertise, vérifier une note lorsqu’elle existe, consulter un portfolio et engager la conversation sans détour. Plutôt que de masquer l’information derrière un formulaire, Folio rend les services lisibles pour les acheteurs tout en laissant aux indépendants la maîtrise des informations publiées. Que vous cherchiez un développeur web pour accélérer un lancement, un designer UI/UX pour améliorer un produit, ou un spécialiste du contenu pour soutenir votre croissance, commencez par une catégorie et affinez ensuite par localisation.</p>
-        </section>
-
-        <section className="seo-container landing-process" aria-labelledby="process-title">
-          <p className="eyebrow">Comment ça marche</p>
-          <h2 id="process-title">Trois étapes pour démarrer</h2>
-          <ol>
-            <li><strong>Explorez un métier.</strong> Accédez à une catégorie structurée autour de la compétence recherchée.</li>
-            <li><strong>Évaluez un profil.</strong> Découvrez les services, l’expérience, la localisation, le portfolio et les avis disponibles.</li>
-            <li><strong>Contactez l’expert.</strong> Ouvrez une conversation avec une personne déjà alignée sur votre projet.</li>
-          </ol>
-        </section>
-
-        <div className="seo-container"><CategoryGrid categories={categories.slice(0, 8)} /></div>
-        <section className="landing-cta">
-          <div className="seo-container">
-            <h2>Votre prochain collaborateur est peut-être déjà sur Folio.</h2>
-            <Link href={categoryPath('Développeur web')} className="site-button">Découvrir les profils</Link>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
-  );
+    const fetchedCategories = await getCategories();
+    const categories = fetchedCategories.length ? fetchedCategories : PRIMARY_SPECIALTIES.map((label) => ({
+        label,
+        slug: label,
+        count: 0,
+    }));
+    return (_jsxs(_Fragment, { children: [_jsx(Header, {}), _jsxs("main", { children: [_jsx("section", { className: "landing-hero", children: _jsxs("div", { className: "seo-container landing-hero__content", children: [_jsx("p", { className: "eyebrow", children: "Plateforme B2B de talents ind\u00E9pendants" }), _jsx("h1", { children: "Trouvez le freelance qui fera avancer votre projet." }), _jsx("p", { className: "landing-hero__lead", children: "Folio met les entreprises en relation avec des sp\u00E9cialistes du d\u00E9veloppement, du design et du digital, selon leur expertise, leur localisation et leurs services." }), _jsxs("div", { className: "landing-hero__actions", children: [_jsx(Link, { href: "/freelancers", className: "site-button", children: "Parcourir les freelancers" }), _jsx(Link, { href: "/espace?auth=signup", className: "site-button site-button--outline", children: "Publier mon profil" })] })] }) }), _jsxs("section", { className: "seo-container landing-copy", id: "comment-ca-marche", "aria-labelledby": "landing-copy-title", children: [_jsx("p", { className: "eyebrow", children: "Un sourcing plus simple" }), _jsx("h2", { id: "landing-copy-title", children: "Des comp\u00E9tences claires, des profils r\u00E9ellement exploitables" }), _jsx("p", { children: "Recruter un ind\u00E9pendant ne devrait pas commencer par des dizaines de messages sans r\u00E9ponse ni par des portfolios difficiles \u00E0 comparer. Folio aide les \u00E9quipes B2B, startups, agences et PME \u00E0 identifier rapidement les personnes capables de livrer un site web, une application mobile, une identit\u00E9 visuelle, une interface produit ou une strat\u00E9gie d\u2019acquisition. Chaque profil r\u00E9unit la sp\u00E9cialit\u00E9 du freelancer, son exp\u00E9rience, ses services, ses liens professionnels, sa zone d\u2019intervention et, lorsqu\u2019il est indiqu\u00E9, son tarif de d\u00E9part. Vous pouvez ainsi pr\u00E9parer un premier \u00E9change avec le bon contexte." }), _jsx("p", { children: "Pour les freelancers, Folio transforme un profil en page professionnelle facilement partageable. Une URL claire par sp\u00E9cialit\u00E9 et localisation permet \u00E0 un d\u00E9veloppeur, un designer ou un expert SEO d\u2019\u00EAtre trouv\u00E9 par des prospects qui recherchent pr\u00E9cis\u00E9ment ce savoir-faire. Les pages font \u00E9galement le lien vers les cat\u00E9gories m\u00E9tier pertinentes, afin de renforcer la d\u00E9couverte organique et de donner aux visiteurs plusieurs chemins vers les talents adapt\u00E9s \u00E0 leur besoin." }), _jsx("p", { children: "La plateforme est pens\u00E9e pour des d\u00E9cisions concr\u00E8tes : comparer une expertise, v\u00E9rifier une note lorsqu\u2019elle existe, consulter un portfolio et engager la conversation sans d\u00E9tour. Plut\u00F4t que de masquer l\u2019information derri\u00E8re un formulaire, Folio rend les services lisibles pour les acheteurs tout en laissant aux ind\u00E9pendants la ma\u00EEtrise des informations publi\u00E9es. Que vous cherchiez un d\u00E9veloppeur web pour acc\u00E9l\u00E9rer un lancement, un designer UI/UX pour am\u00E9liorer un produit, ou un sp\u00E9cialiste du contenu pour soutenir votre croissance, commencez par une cat\u00E9gorie et affinez ensuite par localisation." })] }), _jsxs("section", { className: "seo-container landing-process", "aria-labelledby": "process-title", children: [_jsx("p", { className: "eyebrow", children: "Comment \u00E7a marche" }), _jsx("h2", { id: "process-title", children: "Trois \u00E9tapes pour d\u00E9marrer" }), _jsxs("ol", { children: [_jsxs("li", { children: [_jsx("strong", { children: "Explorez un m\u00E9tier." }), " Acc\u00E9dez \u00E0 une cat\u00E9gorie structur\u00E9e autour de la comp\u00E9tence recherch\u00E9e."] }), _jsxs("li", { children: [_jsx("strong", { children: "\u00C9valuez un profil." }), " D\u00E9couvrez les services, l\u2019exp\u00E9rience, la localisation, le portfolio et les avis disponibles."] }), _jsxs("li", { children: [_jsx("strong", { children: "Contactez l\u2019expert." }), " Ouvrez une conversation avec une personne d\u00E9j\u00E0 align\u00E9e sur votre projet."] })] })] }), _jsx("div", { className: "seo-container", children: _jsx(CategoryGrid, { categories: categories.slice(0, 8) }) }), _jsx("section", { className: "landing-cta", children: _jsxs("div", { className: "seo-container", children: [_jsx("h2", { children: "Votre prochain collaborateur est peut-\u00EAtre d\u00E9j\u00E0 sur Folio." }), _jsx(Link, { href: categoryPath('Développeur web'), className: "site-button", children: "D\u00E9couvrir les profils" })] }) })] }), _jsx(Footer, {})] }));
 }

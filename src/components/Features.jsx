@@ -1,333 +1,64 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useRef, useState } from 'react';
 import folioVideo from '../assets/folio.mp4';
 import analysePortfolioImage from '../assets/analyse_site_web.jpg';
 import competitorImage from '../assets/client.jpg';
 import formationImage from '../assets/formation_compléte_freelancer.jpg';
-
 const featureCards = [
-  { visual: 'visual-track', icon: 'bi-activity', title: 'Suivi du trafic', description: "Colle un script sur ton portfolio et vois exactement quelles pages et quels projets retiennent l'attention." },
-  { visual: 'visual-contact', icon: 'bi-whatsapp', title: 'Contact pour les prestations de services', description: 'Accède à des contacts WhatsApp intéressés pour présenter tes services directement et passer des appels commerciaux.' },
-  { visual: 'visual-social', icon: 'bi-stars', title: 'Idées de contenu', description: 'Reçois chaque jour un titre, une description et des hashtags pour ta prochaine vidéo.' },
-  { visual: 'visual-score', icon: 'bi-speedometer2', title: 'Score de visibilité', description: 'Une note simple qui résume la performance globale de ton portfolio, semaine après semaine.' },
-  { visual: 'visual-alert', icon: 'bi-graph-up-arrow', title: 'Alertes de pic de trafic', description: "Sois prévenu dès qu'un afflux inhabituel de visiteurs arrive sur ton portfolio." },
+    { visual: 'visual-track', icon: 'bi-activity', title: 'Suivi du trafic', description: "Colle un script sur ton portfolio et vois exactement quelles pages et quels projets retiennent l'attention." },
+    { visual: 'visual-contact', icon: 'bi-whatsapp', title: 'Contact pour les prestations de services', description: 'Accède à des contacts WhatsApp intéressés pour présenter tes services directement et passer des appels commerciaux.' },
+    { visual: 'visual-social', icon: 'bi-stars', title: 'Idées de contenu', description: 'Reçois chaque jour un titre, une description et des hashtags pour ta prochaine vidéo.' },
+    { visual: 'visual-score', icon: 'bi-speedometer2', title: 'Score de visibilité', description: 'Une note simple qui résume la performance globale de ton portfolio, semaine après semaine.' },
+    { visual: 'visual-alert', icon: 'bi-graph-up-arrow', title: 'Alertes de pic de trafic', description: "Sois prévenu dès qu'un afflux inhabituel de visiteurs arrive sur ton portfolio." },
 ];
-
 const FeatureCarousel = () => {
-  const trackRef = useRef(null);
-  const dragRef = useRef({ active: false, startX: 0, startScroll: 0 });
-  const [dragging, setDragging] = useState(false);
-
-  const moveByCard = (direction) => {
-    const card = trackRef.current?.querySelector('.folio-feature-card');
-    if (!card) return;
-    const gap = parseFloat(getComputedStyle(trackRef.current).gap) || 0;
-    trackRef.current.scrollBy({ left: direction * (card.offsetWidth + gap), behavior: 'smooth' });
-  };
-
-  const startDrag = (event) => {
-    const point = event.touches?.[0] || event;
-    dragRef.current = { active: true, startX: point.pageX, startScroll: trackRef.current.scrollLeft };
-    setDragging(true);
-  };
-
-  const drag = (event) => {
-    if (!dragRef.current.active) return;
-    const point = event.touches?.[0] || event;
-    trackRef.current.scrollLeft = dragRef.current.startScroll - (point.pageX - dragRef.current.startX);
-  };
-
-  const stopDrag = () => {
-    dragRef.current.active = false;
-    setDragging(false);
-  };
-
-  return (
-    <section className="feature-carousel mt-5 pt-5 border-top reveal">
-      <div className="text-center mb-4 px-3">
-        <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-primary)', letterSpacing: '0.06em', fontSize: '0.8rem' }}>Fonctionnalités Folio</p>
-        <h2 className="display-5 font-serif mb-0">Tout ce qu'il te faut pour comprendre et faire grandir ton portfolio</h2>
-      </div>
-      <div
-        ref={trackRef}
-        className={`feature-carousel-track ${dragging ? 'is-dragging' : ''}`}
-        onMouseDown={startDrag}
-        onMouseMove={drag}
-        onMouseUp={stopDrag}
-        onMouseLeave={stopDrag}
-        onTouchStart={startDrag}
-        onTouchMove={drag}
-        onTouchEnd={stopDrag}
-      >
-        {featureCards.map((card, index) => (
-          <article className="folio-feature-card" key={card.title}>
-            <div className={`feature-card-visual ${card.visual}`}>
-              {index === 0 && <svg viewBox="0 0 260 170" aria-hidden="true"><path d="M 20 130 Q 90 60, 140 90 T 230 60" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeDasharray="1 8" strokeLinecap="round" /><circle cx="20" cy="130" r="5" fill="white" /><circle cx="140" cy="90" r="4" fill="#C9C4F5" /><circle cx="230" cy="60" r="6" fill="#EE7B76" /></svg>}
-              {index === 1 && <div className="mini-contact"><div><i className="bi bi-whatsapp"></i> Contact disponible</div><div><i className="bi bi-telephone"></i> Appel commercial</div><div><i className="bi bi-check-circle"></i> Service à proposer</div></div>}
-              {index === 2 && <span className="mini-generate-btn"><i className="bi bi-stars"></i> Générer une idée</span>}
-              {index === 3 && <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="#D6D3EF" strokeWidth="10" /><circle cx="50" cy="50" r="42" fill="none" stroke="#534AB7" strokeWidth="10" strokeDasharray="264" strokeDashoffset="70" strokeLinecap="round" transform="rotate(-90 50 50)" /><text x="50" y="56" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="22" fontWeight="600" fill="#26215C">74</text></svg>}
-              {index === 4 && <svg width="150" height="90" viewBox="0 0 150 90" aria-hidden="true"><polyline points="10,70 40,55 70,60 100,30 140,20" fill="none" stroke="#3E9C5C" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /><circle cx="140" cy="20" r="5" fill="#3E9C5C" /></svg>}
-            </div>
-            <h3 className="feature-card-title">{card.title}</h3>
-            <p className="feature-card-description">{card.description}</p>
-            <a href="#pricing" className="feature-card-link">Apprendre encore plus <span aria-hidden="true">&#8594;</span></a>
-          </article>
-        ))}
-      </div>
-      <div className="feature-carousel-nav" aria-label="Navigation des fonctionnalités">
-        <button type="button" className="feature-nav-btn" onClick={() => moveByCard(-1)} aria-label="Carte précédente">&#8592;</button>
-        <button type="button" className="feature-nav-btn" onClick={() => moveByCard(1)} aria-label="Carte suivante">&#8594;</button>
-      </div>
-    </section>
-  );
+    const trackRef = useRef(null);
+    const dragRef = useRef({ active: false, startX: 0, startScroll: 0 });
+    const [dragging, setDragging] = useState(false);
+    const moveByCard = (direction) => {
+        const card = trackRef.current?.querySelector('.folio-feature-card');
+        if (!card)
+            return;
+        const gap = parseFloat(getComputedStyle(trackRef.current).gap) || 0;
+        trackRef.current.scrollBy({ left: direction * (card.offsetWidth + gap), behavior: 'smooth' });
+    };
+    const startDrag = (event) => {
+        const point = event.touches?.[0] || event;
+        dragRef.current = { active: true, startX: point.pageX, startScroll: trackRef.current.scrollLeft };
+        setDragging(true);
+    };
+    const drag = (event) => {
+        if (!dragRef.current.active)
+            return;
+        const point = event.touches?.[0] || event;
+        trackRef.current.scrollLeft = dragRef.current.startScroll - (point.pageX - dragRef.current.startX);
+    };
+    const stopDrag = () => {
+        dragRef.current.active = false;
+        setDragging(false);
+    };
+    return (_jsxs("section", { className: "feature-carousel mt-5 pt-5 border-top reveal", children: [_jsxs("div", { className: "text-center mb-4 px-3", children: [_jsx("p", { className: "text-uppercase fw-semibold mb-2", style: { color: 'var(--folio-primary)', letterSpacing: '0.06em', fontSize: '0.8rem' }, children: "Fonctionnalit\u00E9s Folio" }), _jsx("h2", { className: "display-5 font-serif mb-0", children: "Tout ce qu'il te faut pour comprendre et faire grandir ton portfolio" })] }), _jsx("div", { ref: trackRef, className: `feature-carousel-track ${dragging ? 'is-dragging' : ''}`, onMouseDown: startDrag, onMouseMove: drag, onMouseUp: stopDrag, onMouseLeave: stopDrag, onTouchStart: startDrag, onTouchMove: drag, onTouchEnd: stopDrag, children: featureCards.map((card, index) => (_jsxs("article", { className: "folio-feature-card", children: [_jsxs("div", { className: `feature-card-visual ${card.visual}`, children: [index === 0 && _jsxs("svg", { viewBox: "0 0 260 170", "aria-hidden": "true", children: [_jsx("path", { d: "M 20 130 Q 90 60, 140 90 T 230 60", fill: "none", stroke: "#8B5CF6", strokeWidth: "2", strokeDasharray: "1 8", strokeLinecap: "round" }), _jsx("circle", { cx: "20", cy: "130", r: "5", fill: "white" }), _jsx("circle", { cx: "140", cy: "90", r: "4", fill: "#C9C4F5" }), _jsx("circle", { cx: "230", cy: "60", r: "6", fill: "#EE7B76" })] }), index === 1 && _jsxs("div", { className: "mini-contact", children: [_jsxs("div", { children: [_jsx("i", { className: "bi bi-whatsapp" }), " Contact disponible"] }), _jsxs("div", { children: [_jsx("i", { className: "bi bi-telephone" }), " Appel commercial"] }), _jsxs("div", { children: [_jsx("i", { className: "bi bi-check-circle" }), " Service \u00E0 proposer"] })] }), index === 2 && _jsxs("span", { className: "mini-generate-btn", children: [_jsx("i", { className: "bi bi-stars" }), " G\u00E9n\u00E9rer une id\u00E9e"] }), index === 3 && _jsxs("svg", { width: "100", height: "100", viewBox: "0 0 100 100", "aria-hidden": "true", children: [_jsx("circle", { cx: "50", cy: "50", r: "42", fill: "none", stroke: "#D6D3EF", strokeWidth: "10" }), _jsx("circle", { cx: "50", cy: "50", r: "42", fill: "none", stroke: "#534AB7", strokeWidth: "10", strokeDasharray: "264", strokeDashoffset: "70", strokeLinecap: "round", transform: "rotate(-90 50 50)" }), _jsx("text", { x: "50", y: "56", textAnchor: "middle", fontFamily: "Fraunces, serif", fontSize: "22", fontWeight: "600", fill: "#26215C", children: "74" })] }), index === 4 && _jsxs("svg", { width: "150", height: "90", viewBox: "0 0 150 90", "aria-hidden": "true", children: [_jsx("polyline", { points: "10,70 40,55 70,60 100,30 140,20", fill: "none", stroke: "#3E9C5C", strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round" }), _jsx("circle", { cx: "140", cy: "20", r: "5", fill: "#3E9C5C" })] })] }), _jsx("h3", { className: "feature-card-title", children: card.title }), _jsx("p", { className: "feature-card-description", children: card.description }), _jsxs("a", { href: "#pricing", className: "feature-card-link", children: ["Apprendre encore plus ", _jsx("span", { "aria-hidden": "true", children: "\u2192" })] })] }, card.title))) }), _jsxs("div", { className: "feature-carousel-nav", "aria-label": "Navigation des fonctionnalit\u00E9s", children: [_jsx("button", { type: "button", className: "feature-nav-btn", onClick: () => moveByCard(-1), "aria-label": "Carte pr\u00E9c\u00E9dente", children: "\u2190" }), _jsx("button", { type: "button", className: "feature-nav-btn", onClick: () => moveByCard(1), "aria-label": "Carte suivante", children: "\u2192" })] })] }));
 };
-
 const FolioVideo = () => {
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return undefined;
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
-    }, { threshold: 0.35 });
-
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <section className="folio-video-section pt-5 mt-5 border-top reveal">
-      <div className="row align-items-center g-4 g-lg-5">
-        <div className="col-lg-5">
-          <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
-            Découvre Folio
-          </p>
-          <h2 className="display-5 font-serif mb-3">Ton portfolio mérite d'être vu.</h2>
-          <p className="lead text-body-custom mb-0">
-            Une expérience claire pour comprendre ton audience et transformer chaque visite en opportunité.
-          </p>
-        </div>
-        <div className="col-lg-7">
-          <div className="folio-video-frame">
-            <video
-              ref={videoRef}
-              className="w-100 d-block"
-              src={folioVideo}
-              muted
-              playsInline
-              preload="metadata"
-              aria-label="Présentation de Folio Dev et de ses fonctionnalités"
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+    const videoRef = useRef(null);
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video)
+            return undefined;
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                video.play().catch(() => { });
+            }
+            else {
+                video.pause();
+            }
+        }, { threshold: 0.35 });
+        observer.observe(video);
+        return () => observer.disconnect();
+    }, []);
+    return (_jsx("section", { className: "folio-video-section pt-5 mt-5 border-top reveal", children: _jsxs("div", { className: "row align-items-center g-4 g-lg-5", children: [_jsxs("div", { className: "col-lg-5", children: [_jsx("p", { className: "text-uppercase fw-semibold mb-2", style: { color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }, children: "D\u00E9couvre Folio" }), _jsx("h2", { className: "display-5 font-serif mb-3", children: "Ton portfolio m\u00E9rite d'\u00EAtre vu." }), _jsx("p", { className: "lead text-body-custom mb-0", children: "Une exp\u00E9rience claire pour comprendre ton audience et transformer chaque visite en opportunit\u00E9." })] }), _jsx("div", { className: "col-lg-7", children: _jsx("div", { className: "folio-video-frame", children: _jsx("video", { ref: videoRef, className: "w-100 d-block", src: folioVideo, muted: true, playsInline: true, preload: "metadata", "aria-label": "Pr\u00E9sentation de Folio Dev et de ses fonctionnalit\u00E9s" }) }) })] }) }));
 };
-
 const Features = ({ user, onStart, onDashboard }) => {
-  return (
-    <section id="features" className="py-5 bg-white">
-      <div className="container py-5 my-3">
-        <div className="text-center mb-5 pb-5 reveal">
-          <h2 className="display-5 font-serif mb-4">Les fonctionnalités de Folio Dev pour ton portfolio</h2>
-          <p className="lead text-body-custom mx-auto" style={{ maxWidth: '650px' }}>
-            Folio se concentre sur l'essentiel pour t'apporter de la valeur, sans te noyer sous des graphiques incompréhensibles.
-          </p>
-        </div>
-
-        <div className="row g-5">
-          {/* Feature 1 */}
-          <div className="col-md-6 col-lg-3 reveal reveal-delay-1">
-            <div className="pe-xl-4">
-              <div className="mb-4">
-                <i className="bi bi-bullseye fs-1" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h5 className="font-serif h4 mb-3">Tracking précis</h5>
-              <p className="text-body-custom">
-                Mesure les clics sur tes boutons de contact, les téléchargements de ton CV et le temps passé sur chaque projet de ton portfolio.
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="col-md-6 col-lg-3 reveal reveal-delay-2">
-            <div className="pe-xl-4">
-              <div className="mb-4">
-                <i className="bi bi-envelope-paper fs-1" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h5 className="font-serif h4 mb-3">Rapport par email</h5>
-              <p className="text-body-custom">
-                Ne retourne plus jamais sur un dashboard complexe. Reçois l'essentiel directement dans ta boîte mail chaque semaine.
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="col-md-6 col-lg-3 reveal reveal-delay-3">
-            <div className="pe-xl-4">
-              <div className="mb-4">
-                <i className="bi bi-lightbulb fs-1" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h5 className="font-serif h4 mb-3">Idées de contenu</h5>
-              <p className="text-body-custom">
-                Notre système analyse ce qui fonctionne sur ton site et te suggère des idées de posts, des titres accrocheurs et les bons hashtags.
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 4 */}
-          <div className="col-md-6 col-lg-3 reveal reveal-delay-4">
-            <div className="pe-xl-4">
-              <div className="mb-4">
-                <i className="bi bi-graph-up-arrow fs-1" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h5 className="font-serif h4 mb-3">Vue épurée</h5>
-              <p className="text-body-custom">
-                Pour les plus curieux, accède à un dashboard minimaliste en temps réel pour voir instantanément l'impact de tes actions.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <section className="pt-5 mt-5 border-top reveal">
-          <div className="text-center mb-5">
-            <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
-              IA Freelancer
-            </p>
-            <h2 className="display-5 font-serif mb-3">L'IA qui t'aide à devenir plus visible et plus rentable</h2>
-            <p className="lead text-body-custom mx-auto mb-0" style={{ maxWidth: '760px' }}>
-              Analyse les portfolios, compare les profils qui marchent et donne des pistes concrètes pour réussir en reproduisant les bonnes pratiques de référence.
-            </p>
-          </div>
-
-          <div className="row g-4">
-            <div className="col-lg-4">
-              <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
-                <img src={analysePortfolioImage} alt="Analyse Folio Dev d'un portfolio développeur" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
-                <div className="p-4">
-                  <h3 className="font-serif h4 mb-3">Analyse de portfolio</h3>
-                  <p className="text-body-custom mb-4">
-                    Notre IA inspecte ton portfolio, identifie ce qui attire l'attention et met en lumière les éléments qui boostent la conversion, les appels et les missions.
-                  </p>
-                  <button type="button" className="btn btn-primary-custom w-100" onClick={user ? onDashboard : onStart}>
-                    {user ? 'Accéder au tableau de bord' : 'Créer mon compte'}
-                  </button>
-                </div>
-              </article>
-            </div>
-
-            <div className="col-lg-4">
-              <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
-                <img src={competitorImage} alt="Analyse Folio Dev des performances de portfolios concurrents" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
-                <div className="p-4">
-                  <h3 className="font-serif h4 mb-3">Comprendre les meilleurs profils</h3>
-                  <p className="text-body-custom mb-4">
-                    L'IA analyse les portefeuilles des autres freelances, repère les traces de réussite et propose des leviers précis pour améliorer ton positionnement et accélérer ta croissance.
-                  </p>
-                  <button type="button" className="btn btn-primary-custom w-100" onClick={user ? onDashboard : onStart}>
-                    {user ? 'Voir mon tableau de bord' : 'Se connecter / S’inscrire'}
-                  </button>
-                </div>
-              </article>
-            </div>
-
-            <div className="col-lg-4">
-              <article className="h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white">
-                <img src={formationImage} alt="Formation Folio Dev pour développeurs freelances" className="w-100 d-block" style={{ height: '220px', objectFit: 'cover' }} />
-                <div className="p-4">
-                  <h3 className="font-serif h4 mb-3">IA + formation Freelancer</h3>
-                  <p className="text-body-custom mb-4">
-                    Enrichis tes profils avec l'IA, améliore la qualité de ta présence en ligne et suis une formation pensée pour devenir un freelancer plus crédible, mieux positionné et plus rentable.
-                  </p>
-                  <button type="button" className="btn btn-outline-custom w-100" onClick={() => {}}>
-                    Formation freelancer
-                  </button>
-                </div>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <FeatureCarousel />
-
-        <div id="pricing" className="pt-5 mt-5 border-top">
-          <div className="text-center mb-5 reveal">
-            <p className="text-uppercase fw-semibold mb-2" style={{ color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }}>
-              Les tarifs
-            </p>
-            <h2 className="display-5 font-serif mb-3">Des offres pensées pour propulser ton activité.</h2>
-            <p className="lead text-body-custom mx-auto mb-0" style={{ maxWidth: '650px' }}>
-              Des outils simples et concrets pour trouver des clients, améliorer ta visibilité et développer ta présence en ligne.
-            </p>
-          </div>
-
-          <div className="row g-4 align-items-stretch">
-            <div className="col-lg-4 reveal reveal-delay-1">
-              <article className="pricing-card pricing-card-trial h-100 d-flex flex-column p-4 p-xl-5">
-                <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div className="pricing-icon"><i className="bi bi-stars"></i></div>
-                  <span className="badge pricing-badge">Essai gratuit</span>
-                </div>
-                <h3 className="font-serif h4 mb-3">Offre gratuite</h3>
-                <p className="text-body-custom flex-grow-1 mb-4">
-                  Teste l'outil sans engagement. Crée ton portfolio en 5 minutes et accède aux statistiques de visites essentielles.
-                </p>
-                <div className="pricing-price mb-4">0 <small>F / 7 jours</small></div>
-                <button
-                  type="button"
-                  className="btn btn-primary-custom w-100"
-                  onClick={user ? onDashboard : onStart}
-                >
-                  <i className={`bi ${user ? 'bi-grid-1x2 me-2' : 'bi-person-plus me-2'}`}></i>
-                  {user ? 'Accéder à mon tableau de bord' : "S'inscrire gratuitement"}
-                </button>
-              </article>
-            </div>
-
-            <div className="col-lg-4 reveal reveal-delay-2">
-              <article className="pricing-card pricing-card-featured h-100 d-flex flex-column p-4 p-xl-5">
-                <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div className="pricing-icon"><i className="bi bi-search-heart-fill"></i></div>
-                  <span className="badge pricing-badge">Premium IA</span>
-                </div>
-                <h3 className="font-serif h4 mb-3">Premium IA</h3>
-                <p className="text-body-custom flex-grow-1 mb-4">
-                  Débloque la puissance de l'Intelligence Artificielle. Analyse automatique de ton profil, génération d'images uniques, outils de comparaison et alertes de missions ciblées directement par e-mail.
-                </p>
-                <div className="pricing-price mb-4">7 864 <small>F / mois</small></div>
-                <button type="button" className="btn btn-primary-custom w-100" onClick={user ? onDashboard : onStart}>
-                  Passer à la vitesse supérieure
-                </button>
-              </article>
-            </div>
-
-            <div className="col-lg-4 reveal reveal-delay-3">
-              <article className="pricing-card h-100 d-flex flex-column p-4 p-xl-5">
-                <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div className="pricing-icon"><i className="bi bi-people-fill"></i></div>
-                  <span className="badge pricing-badge">Acquisition</span>
-                </div>
-                <h3 className="font-serif h4 mb-3">Premium Acquisition</h3>
-                <p className="text-body-custom flex-grow-1 mb-4">
-                  Accède à un réseau de plus de 31 000 contacts qualifiés à prospecter ou à toucher avec tes campagnes publicitaires. Donne à ton business les bonnes opportunités pour décoller.
-                </p>
-                <div className="pricing-price mb-4">6 000 <small>F / mois</small></div>
-                <button type="button" className="btn btn-outline-custom w-100">Choisir cette offre</button>
-              </article>
-            </div>
-          </div>
-
-          <FolioVideo />
-        </div>
-      </div>
-    </section>
-  );
+    return (_jsx("section", { id: "features", className: "py-5 bg-white", children: _jsxs("div", { className: "container py-5 my-3", children: [_jsxs("div", { className: "text-center mb-5 pb-5 reveal", children: [_jsx("h2", { className: "display-5 font-serif mb-4", children: "Les fonctionnalit\u00E9s de Folio Dev pour ton portfolio" }), _jsx("p", { className: "lead text-body-custom mx-auto", style: { maxWidth: '650px' }, children: "Folio se concentre sur l'essentiel pour t'apporter de la valeur, sans te noyer sous des graphiques incompr\u00E9hensibles." })] }), _jsxs("div", { className: "row g-5", children: [_jsx("div", { className: "col-md-6 col-lg-3 reveal reveal-delay-1", children: _jsxs("div", { className: "pe-xl-4", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-bullseye fs-1", style: { color: 'var(--folio-primary)' } }) }), _jsx("h5", { className: "font-serif h4 mb-3", children: "Tracking pr\u00E9cis" }), _jsx("p", { className: "text-body-custom", children: "Mesure les clics sur tes boutons de contact, les t\u00E9l\u00E9chargements de ton CV et le temps pass\u00E9 sur chaque projet de ton portfolio." })] }) }), _jsx("div", { className: "col-md-6 col-lg-3 reveal reveal-delay-2", children: _jsxs("div", { className: "pe-xl-4", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-envelope-paper fs-1", style: { color: 'var(--folio-primary)' } }) }), _jsx("h5", { className: "font-serif h4 mb-3", children: "Rapport par email" }), _jsx("p", { className: "text-body-custom", children: "Ne retourne plus jamais sur un dashboard complexe. Re\u00E7ois l'essentiel directement dans ta bo\u00EEte mail chaque semaine." })] }) }), _jsx("div", { className: "col-md-6 col-lg-3 reveal reveal-delay-3", children: _jsxs("div", { className: "pe-xl-4", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-lightbulb fs-1", style: { color: 'var(--folio-primary)' } }) }), _jsx("h5", { className: "font-serif h4 mb-3", children: "Id\u00E9es de contenu" }), _jsx("p", { className: "text-body-custom", children: "Notre syst\u00E8me analyse ce qui fonctionne sur ton site et te sugg\u00E8re des id\u00E9es de posts, des titres accrocheurs et les bons hashtags." })] }) }), _jsx("div", { className: "col-md-6 col-lg-3 reveal reveal-delay-4", children: _jsxs("div", { className: "pe-xl-4", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-graph-up-arrow fs-1", style: { color: 'var(--folio-primary)' } }) }), _jsx("h5", { className: "font-serif h4 mb-3", children: "Vue \u00E9pur\u00E9e" }), _jsx("p", { className: "text-body-custom", children: "Pour les plus curieux, acc\u00E8de \u00E0 un dashboard minimaliste en temps r\u00E9el pour voir instantan\u00E9ment l'impact de tes actions." })] }) })] }), _jsxs("section", { className: "pt-5 mt-5 border-top reveal", children: [_jsxs("div", { className: "text-center mb-5", children: [_jsx("p", { className: "text-uppercase fw-semibold mb-2", style: { color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }, children: "IA Freelancer" }), _jsx("h2", { className: "display-5 font-serif mb-3", children: "L'IA qui t'aide \u00E0 devenir plus visible et plus rentable" }), _jsx("p", { className: "lead text-body-custom mx-auto mb-0", style: { maxWidth: '760px' }, children: "Analyse les portfolios, compare les profils qui marchent et donne des pistes concr\u00E8tes pour r\u00E9ussir en reproduisant les bonnes pratiques de r\u00E9f\u00E9rence." })] }), _jsxs("div", { className: "row g-4", children: [_jsx("div", { className: "col-lg-4", children: _jsxs("article", { className: "h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white", children: [_jsx("img", { src: analysePortfolioImage, alt: "Analyse Folio Dev d'un portfolio d\u00E9veloppeur", className: "w-100 d-block", style: { height: '220px', objectFit: 'cover' } }), _jsxs("div", { className: "p-4", children: [_jsx("h3", { className: "font-serif h4 mb-3", children: "Analyse de portfolio" }), _jsx("p", { className: "text-body-custom mb-4", children: "Notre IA inspecte ton portfolio, identifie ce qui attire l'attention et met en lumi\u00E8re les \u00E9l\u00E9ments qui boostent la conversion, les appels et les missions." }), _jsx("button", { type: "button", className: "btn btn-primary-custom w-100", onClick: user ? onDashboard : onStart, children: user ? 'Accéder au tableau de bord' : 'Créer mon compte' })] })] }) }), _jsx("div", { className: "col-lg-4", children: _jsxs("article", { className: "h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white", children: [_jsx("img", { src: competitorImage, alt: "Analyse Folio Dev des performances de portfolios concurrents", className: "w-100 d-block", style: { height: '220px', objectFit: 'cover' } }), _jsxs("div", { className: "p-4", children: [_jsx("h3", { className: "font-serif h4 mb-3", children: "Comprendre les meilleurs profils" }), _jsx("p", { className: "text-body-custom mb-4", children: "L'IA analyse les portefeuilles des autres freelances, rep\u00E8re les traces de r\u00E9ussite et propose des leviers pr\u00E9cis pour am\u00E9liorer ton positionnement et acc\u00E9l\u00E9rer ta croissance." }), _jsx("button", { type: "button", className: "btn btn-primary-custom w-100", onClick: user ? onDashboard : onStart, children: user ? 'Voir mon tableau de bord' : 'Se connecter / S’inscrire' })] })] }) }), _jsx("div", { className: "col-lg-4", children: _jsxs("article", { className: "h-100 rounded-4 overflow-hidden border border-1 border-light-subtle shadow-sm bg-white", children: [_jsx("img", { src: formationImage, alt: "Formation Folio Dev pour d\u00E9veloppeurs freelances", className: "w-100 d-block", style: { height: '220px', objectFit: 'cover' } }), _jsxs("div", { className: "p-4", children: [_jsx("h3", { className: "font-serif h4 mb-3", children: "IA + formation Freelancer" }), _jsx("p", { className: "text-body-custom mb-4", children: "Enrichis tes profils avec l'IA, am\u00E9liore la qualit\u00E9 de ta pr\u00E9sence en ligne et suis une formation pens\u00E9e pour devenir un freelancer plus cr\u00E9dible, mieux positionn\u00E9 et plus rentable." }), _jsx("button", { type: "button", className: "btn btn-outline-custom w-100", onClick: () => { }, children: "Formation freelancer" })] })] }) })] })] }), _jsx(FeatureCarousel, {}), _jsxs("div", { id: "pricing", className: "pt-5 mt-5 border-top", children: [_jsxs("div", { className: "text-center mb-5 reveal", children: [_jsx("p", { className: "text-uppercase fw-semibold mb-2", style: { color: 'var(--folio-secondary-2)', letterSpacing: '0.1em', fontSize: '0.85rem' }, children: "Les tarifs" }), _jsx("h2", { className: "display-5 font-serif mb-3", children: "Des offres pens\u00E9es pour propulser ton activit\u00E9." }), _jsx("p", { className: "lead text-body-custom mx-auto mb-0", style: { maxWidth: '650px' }, children: "Des outils simples et concrets pour trouver des clients, am\u00E9liorer ta visibilit\u00E9 et d\u00E9velopper ta pr\u00E9sence en ligne." })] }), _jsxs("div", { className: "row g-4 align-items-stretch", children: [_jsx("div", { className: "col-lg-4 reveal reveal-delay-1", children: _jsxs("article", { className: "pricing-card pricing-card-trial h-100 d-flex flex-column p-4 p-xl-5", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-start mb-4", children: [_jsx("div", { className: "pricing-icon", children: _jsx("i", { className: "bi bi-stars" }) }), _jsx("span", { className: "badge pricing-badge", children: "Essai gratuit" })] }), _jsx("h3", { className: "font-serif h4 mb-3", children: "Offre gratuite" }), _jsx("p", { className: "text-body-custom flex-grow-1 mb-4", children: "Teste l'outil sans engagement. Cr\u00E9e ton portfolio en 5 minutes et acc\u00E8de aux statistiques de visites essentielles." }), _jsxs("div", { className: "pricing-price mb-4", children: ["0 ", _jsx("small", { children: "F / 7 jours" })] }), _jsxs("button", { type: "button", className: "btn btn-primary-custom w-100", onClick: user ? onDashboard : onStart, children: [_jsx("i", { className: `bi ${user ? 'bi-grid-1x2 me-2' : 'bi-person-plus me-2'}` }), user ? 'Accéder à mon tableau de bord' : "S'inscrire gratuitement"] })] }) }), _jsx("div", { className: "col-lg-4 reveal reveal-delay-2", children: _jsxs("article", { className: "pricing-card pricing-card-featured h-100 d-flex flex-column p-4 p-xl-5", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-start mb-4", children: [_jsx("div", { className: "pricing-icon", children: _jsx("i", { className: "bi bi-search-heart-fill" }) }), _jsx("span", { className: "badge pricing-badge", children: "Premium IA" })] }), _jsx("h3", { className: "font-serif h4 mb-3", children: "Premium IA" }), _jsx("p", { className: "text-body-custom flex-grow-1 mb-4", children: "D\u00E9bloque la puissance de l'Intelligence Artificielle. Analyse automatique de ton profil, g\u00E9n\u00E9ration d'images uniques, outils de comparaison et alertes de missions cibl\u00E9es directement par e-mail." }), _jsxs("div", { className: "pricing-price mb-4", children: ["7 864 ", _jsx("small", { children: "F / mois" })] }), _jsx("button", { type: "button", className: "btn btn-primary-custom w-100", onClick: user ? onDashboard : onStart, children: "Passer \u00E0 la vitesse sup\u00E9rieure" })] }) }), _jsx("div", { className: "col-lg-4 reveal reveal-delay-3", children: _jsxs("article", { className: "pricing-card h-100 d-flex flex-column p-4 p-xl-5", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-start mb-4", children: [_jsx("div", { className: "pricing-icon", children: _jsx("i", { className: "bi bi-people-fill" }) }), _jsx("span", { className: "badge pricing-badge", children: "Acquisition" })] }), _jsx("h3", { className: "font-serif h4 mb-3", children: "Premium Acquisition" }), _jsx("p", { className: "text-body-custom flex-grow-1 mb-4", children: "Acc\u00E8de \u00E0 un r\u00E9seau de plus de 31 000 contacts qualifi\u00E9s \u00E0 prospecter ou \u00E0 toucher avec tes campagnes publicitaires. Donne \u00E0 ton business les bonnes opportunit\u00E9s pour d\u00E9coller." }), _jsxs("div", { className: "pricing-price mb-4", children: ["6 000 ", _jsx("small", { children: "F / mois" })] }), _jsx("button", { type: "button", className: "btn btn-outline-custom w-100", children: "Choisir cette offre" })] }) })] }), _jsx(FolioVideo, {})] })] }) }));
 };
-
 export default Features;

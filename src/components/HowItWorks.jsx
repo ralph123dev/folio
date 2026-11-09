@@ -1,59 +1,6 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React from 'react';
-
 const HowItWorks = () => {
-  return (
-    <section id="how-it-works" className="py-5" style={{ backgroundColor: 'var(--folio-bg)' }}>
-      <div className="container py-5 mt-4">
-        <div className="text-center mb-5 pb-4 reveal">
-          <h2 className="display-5 font-serif mb-4">Comment fonctionne Folio Dev ?</h2>
-          <p className="lead text-body-custom mx-auto" style={{ maxWidth: '700px' }}>
-            Aucune configuration complexe. On a conçu Folio pour s'intégrer instantanément, te laissant plus de temps pour coder.
-          </p>
-        </div>
-
-        <div className="row g-5 text-center mt-2">
-          {/* Etape 1 */}
-          <div className="col-md-4 reveal reveal-delay-1">
-            <div className="px-3">
-              <div className="mb-4">
-                <i className="bi bi-code-slash display-4" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h4 className="font-serif h3 mb-3">1. Colle le script</h4>
-              <p className="text-body-custom px-xl-3">
-                Ajoute notre ligne de code sur ton site ou portfolio. Compatible avec toutes les plateformes (React, HTML, Webflow).
-              </p>
-            </div>
-          </div>
-
-          {/* Etape 2 */}
-          <div className="col-md-4 reveal reveal-delay-2">
-            <div className="px-3">
-              <div className="mb-4">
-                <i className="bi bi-envelope-paper display-4" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h4 className="font-serif h3 mb-3">2. Reçois ton rapport</h4>
-              <p className="text-body-custom px-xl-3">
-                Chaque lundi matin, un email clair et concis résume tes statistiques de visites et l'évolution de ton audience.
-              </p>
-            </div>
-          </div>
-
-          {/* Etape 3 */}
-          <div className="col-md-4 reveal reveal-delay-3">
-            <div className="px-3">
-              <div className="mb-4">
-                <i className="bi bi-share display-4" style={{ color: 'var(--folio-primary)' }}></i>
-              </div>
-              <h4 className="font-serif h3 mb-3">3. Perce sur les réseaux</h4>
-              <p className="text-body-custom px-xl-3">
-                Profite de nos suggestions de posts LinkedIn et Twitter basées sur les projets les plus consultés de ton portfolio.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+    return (_jsx("section", { id: "how-it-works", className: "py-5", style: { backgroundColor: 'var(--folio-bg)' }, children: _jsxs("div", { className: "container py-5 mt-4", children: [_jsxs("div", { className: "text-center mb-5 pb-4 reveal", children: [_jsx("h2", { className: "display-5 font-serif mb-4", children: "Comment fonctionne Folio Dev ?" }), _jsx("p", { className: "lead text-body-custom mx-auto", style: { maxWidth: '700px' }, children: "Aucune configuration complexe. On a con\u00E7u Folio pour s'int\u00E9grer instantan\u00E9ment, te laissant plus de temps pour coder." })] }), _jsxs("div", { className: "row g-5 text-center mt-2", children: [_jsx("div", { className: "col-md-4 reveal reveal-delay-1", children: _jsxs("div", { className: "px-3", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-code-slash display-4", style: { color: 'var(--folio-primary)' } }) }), _jsx("h4", { className: "font-serif h3 mb-3", children: "1. Colle le script" }), _jsx("p", { className: "text-body-custom px-xl-3", children: "Ajoute notre ligne de code sur ton site ou portfolio. Compatible avec toutes les plateformes (React, HTML, Webflow)." })] }) }), _jsx("div", { className: "col-md-4 reveal reveal-delay-2", children: _jsxs("div", { className: "px-3", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-envelope-paper display-4", style: { color: 'var(--folio-primary)' } }) }), _jsx("h4", { className: "font-serif h3 mb-3", children: "2. Re\u00E7ois ton rapport" }), _jsx("p", { className: "text-body-custom px-xl-3", children: "Chaque lundi matin, un email clair et concis r\u00E9sume tes statistiques de visites et l'\u00E9volution de ton audience." })] }) }), _jsx("div", { className: "col-md-4 reveal reveal-delay-3", children: _jsxs("div", { className: "px-3", children: [_jsx("div", { className: "mb-4", children: _jsx("i", { className: "bi bi-share display-4", style: { color: 'var(--folio-primary)' } }) }), _jsx("h4", { className: "font-serif h3 mb-3", children: "3. Perce sur les r\u00E9seaux" }), _jsx("p", { className: "text-body-custom px-xl-3", children: "Profite de nos suggestions de posts LinkedIn et Twitter bas\u00E9es sur les projets les plus consult\u00E9s de ton portfolio." })] }) })] })] }) }));
 };
-
 export default HowItWorks;

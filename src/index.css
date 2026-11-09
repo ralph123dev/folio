@@ -37,40 +37,6 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
   color: var(--folio-text);
 }
 
-.dashboard-shell[data-theme='dark'] {
-  --folio-bg: #171827;
-  --folio-title: #F4F1FF;
-  --folio-text: #C7C4D9;
-  --folio-primary: #A9A4E0;
-}
-
-.dashboard-shell[data-theme='dark'] .dashboard-nav,
-.dashboard-shell[data-theme='dark'] .dashboard-panel,
-.dashboard-shell[data-theme='dark'] .bg-white {
-  background-color: #222336 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.dashboard-shell[data-theme='dark'] .dropdown-menu,
-.dashboard-shell[data-theme='dark'] .modal-content {
-  color: var(--folio-text);
-  background-color: #222336;
-}
-
-.dashboard-shell[data-theme='dark'] .dropdown-item,
-.dashboard-shell[data-theme='dark'] .form-control {
-  color: var(--folio-text);
-}
-
-.dashboard-shell[data-theme='dark'] .dropdown-item:hover {
-  background-color: #303249;
-}
-
-.dashboard-shell[data-theme='dark'] .form-control {
-  border-color: rgba(255, 255, 255, 0.18);
-  background-color: #171827;
-}
-
 .boost-contacts-mobile-trigger,
 .mobile-bottom-sheet-overlay {
   display: none;
@@ -150,7 +116,7 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Custom Buttons */
+
 .btn-primary-custom {
   background-color: var(--folio-primary);
   color: white;
@@ -342,7 +308,7 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
   }
 }
 
-/* SVG Path Animation (optional smooth draw effect) */
+
 .path-line {
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
@@ -355,7 +321,7 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
   }
 }
 
-/* Splash screen animation */
+
 .fade-in {
   animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -365,7 +331,7 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
   to { opacity: 1; }
 }
 
-/* Scroll Reveal Animations */
+
 .reveal {
   opacity: 0;
   transform: translateY(30px);
@@ -382,7 +348,7 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .font-serif {
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
 
-/* Smooth scrolling for the whole page */
+
 html {
   scroll-behavior: smooth;
 }
@@ -615,7 +581,7 @@ html {
   }
 }
 
-/* Supported countries */
+
 .supported-countries {
   overflow: hidden;
   border-top: 1px solid rgba(83, 74, 183, 0.1);

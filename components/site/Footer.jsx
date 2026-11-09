@@ -1,26 +1,5 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import Link from 'next/link';
-
 export default function Footer() {
-  return (
-    <footer className="site-footer">
-      <div className="seo-container site-footer__grid">
-        <div>
-          <Link href="/" className="site-brand"><span className="site-brand__mark" aria-hidden="true">F</span><span>Folio</span></Link>
-          <p>La plateforme B2B pour trouver et présenter des services freelances en développement, design et acquisition digitale.</p>
-        </div>
-        <div>
-          <h2>Explorer</h2>
-          <Link href="/freelancers">Annuaire des freelancers</Link>
-          <Link href="/freelancers/developpeur-web">Développeurs web</Link>
-          <Link href="/freelancers/designer-ui-ux">Designers UI/UX</Link>
-        </div>
-        <div>
-          <h2>Pour les freelancers</h2>
-          <Link href="/espace?auth=signup">Créer mon profil</Link>
-          <Link href="/espace?auth=login">Gérer mon espace</Link>
-        </div>
-      </div>
-      <div className="seo-container site-footer__bottom">© {new Date().getFullYear()} Folio. Tous droits réservés.</div>
-    </footer>
-  );
+    return (_jsxs("footer", { className: "site-footer", children: [_jsxs("div", { className: "seo-container site-footer__grid", children: [_jsxs("div", { children: [_jsxs(Link, { href: "/", className: "site-brand", children: [_jsx("span", { className: "site-brand__mark", "aria-hidden": "true", children: "F" }), _jsx("span", { children: "Folio" })] }), _jsx("p", { children: "La plateforme B2B pour trouver et pr\u00E9senter des services freelances en d\u00E9veloppement, design et acquisition digitale." })] }), _jsxs("div", { children: [_jsx("h2", { children: "Explorer" }), _jsx(Link, { href: "/freelancers", children: "Annuaire des freelancers" }), _jsx(Link, { href: "/freelancers/developpeur-web", children: "D\u00E9veloppeurs web" }), _jsx(Link, { href: "/freelancers/designer-ui-ux", children: "Designers UI/UX" })] }), _jsxs("div", { children: [_jsx("h2", { children: "Pour les freelancers" }), _jsx(Link, { href: "/espace?auth=signup", children: "Cr\u00E9er mon profil" }), _jsx(Link, { href: "/espace?auth=login", children: "G\u00E9rer mon espace" })] })] }), _jsxs("div", { className: "seo-container site-footer__bottom", children: ["\u00A9 ", new Date().getFullYear(), " Folio. Tous droits r\u00E9serv\u00E9s."] })] }));
 }

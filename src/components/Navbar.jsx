@@ -1,71 +1,7 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import React from 'react';
 import logo from '../assets/logo.jpg';
-
 const Navbar = ({ isFreelancerPage, user, onStart, onLogin, onFreelancers, onFormation, onHome, onDashboard, onLogout }) => {
-  return (
-    <nav className="navbar navbar-expand-lg py-4 sticky-top" style={{ backgroundColor: 'var(--folio-bg)' }}>
-      <div className="container">
-        <a className="navbar-brand d-flex align-items-center gap-3 fs-3" href="#" onClick={onHome}>
-          <img src={logo} alt="Logo Folio Dev" width="40" height="40" className="rounded-circle" style={{ mixBlendMode: 'multiply' }} />
-          Folio Dev
-        </a>
-        
-        <button 
-          className="navbar-toggler border-0" 
-          type="button" 
-          data-bs-toggle="collapse" 
-          data-bs-target="#navbarNav" 
-          aria-controls="navbarNav" 
-          aria-expanded="false" 
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
-            {isFreelancerPage ? (
-              <li className="nav-item">
-                <button type="button" className="nav-link text-body-custom px-4 border-0 bg-transparent" onClick={onHome}>Accueil</button>
-              </li>
-            ) : (
-              <>
-                <li className="nav-item">
-                  <a className="nav-link text-body-custom px-4" href="#how-it-works">Comment ça marche</a>
-                </li>
-                <li className="nav-item">
-                  <a className="nav-link text-body-custom px-4" href="#features">Fonctionnalités</a>
-                </li>
-                <li className="nav-item">
-                  <button type="button" className="nav-link text-body-custom px-4 border-0 bg-transparent" onClick={onFreelancers}>Freelancers</button>
-                </li>
-                <li className="nav-item">
-                  <button type="button" className="nav-link text-primary fw-bold px-4 border-0 bg-transparent" onClick={onFormation}>Formation 🎓</button>
-                </li>
-              </>
-            )}
-          </ul>
-          <div className="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-4 mt-3 mt-lg-0">
-            {user ? (
-              <>
-                <button type="button" onClick={onDashboard} className="btn btn-link text-decoration-none text-title fw-medium">Tableau de bord</button>
-                <button type="button" onClick={onLogout} className="btn btn-outline-custom px-4 py-2">
-                  Déconnexion
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="button" onClick={onLogin} className="btn btn-link text-decoration-none text-title fw-medium">Connexion</button>
-                <button type="button" onClick={onStart} className="btn btn-outline-custom px-4 py-2">
-                  Commencer
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
+    return (_jsx("nav", { className: "navbar navbar-expand-lg py-4 sticky-top", style: { backgroundColor: 'var(--folio-bg)' }, children: _jsxs("div", { className: "container", children: [_jsxs("a", { className: "navbar-brand d-flex align-items-center gap-3 fs-3", href: "#", onClick: onHome, children: [_jsx("img", { src: logo, alt: "Logo Folio Dev", width: "40", height: "40", className: "rounded-circle", style: { mixBlendMode: 'multiply' } }), "Folio Dev"] }), _jsx("button", { className: "navbar-toggler border-0", type: "button", "data-bs-toggle": "collapse", "data-bs-target": "#navbarNav", "aria-controls": "navbarNav", "aria-expanded": "false", "aria-label": "Toggle navigation", children: _jsx("span", { className: "navbar-toggler-icon" }) }), _jsxs("div", { className: "collapse navbar-collapse", id: "navbarNav", children: [_jsx("ul", { className: "navbar-nav mx-auto mb-2 mb-lg-0", children: isFreelancerPage ? (_jsx("li", { className: "nav-item", children: _jsx("button", { type: "button", className: "nav-link text-body-custom px-4 border-0 bg-transparent", onClick: onHome, children: "Accueil" }) })) : (_jsxs(_Fragment, { children: [_jsx("li", { className: "nav-item", children: _jsx("a", { className: "nav-link text-body-custom px-4", href: "#how-it-works", children: "Comment \u00E7a marche" }) }), _jsx("li", { className: "nav-item", children: _jsx("a", { className: "nav-link text-body-custom px-4", href: "#features", children: "Fonctionnalit\u00E9s" }) }), _jsx("li", { className: "nav-item", children: _jsx("button", { type: "button", className: "nav-link text-body-custom px-4 border-0 bg-transparent", onClick: onFreelancers, children: "Freelancers" }) }), _jsx("li", { className: "nav-item", children: _jsx("button", { type: "button", className: "nav-link text-primary fw-bold px-4 border-0 bg-transparent", onClick: onFormation, children: "Formation \uD83C\uDF93" }) })] })) }), _jsx("div", { className: "d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-4 mt-3 mt-lg-0", children: user ? (_jsxs(_Fragment, { children: [_jsx("button", { type: "button", onClick: onDashboard, className: "btn btn-link text-decoration-none text-title fw-medium", children: "Tableau de bord" }), _jsx("button", { type: "button", onClick: onLogout, className: "btn btn-outline-custom px-4 py-2", children: "D\u00E9connexion" })] })) : (_jsxs(_Fragment, { children: [_jsx("button", { type: "button", onClick: onLogin, className: "btn btn-link text-decoration-none text-title fw-medium", children: "Connexion" }), _jsx("button", { type: "button", onClick: onStart, className: "btn btn-outline-custom px-4 py-2", children: "Commencer" })] })) })] })] }) }));
 };
-
 export default Navbar;

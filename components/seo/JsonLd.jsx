@@ -1,9 +1,4 @@
+import { jsx as _jsx } from "react/jsx-runtime";
 export default function JsonLd({ data }) {
-  return (
-    <script
-      type="application/ld+json"
-      // JSON-LD is serialized rather than interpolated to avoid malformed markup from UGC.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }}
-    />
-  );
+    return (_jsx("script", { type: "application/ld+json", dangerouslySetInnerHTML: { __html: JSON.stringify(data).replace(/</g, '\\u003c') } }));
 }
