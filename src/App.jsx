@@ -295,7 +295,7 @@ function App() {
             }
         }), _jsxs("main", {
             className: "flex-grow-1", children: [_jsx(Hero, { onStart: () => { setAuthMode('signup'); setShowAuth(true); }, onFormation: handleFormation }), _jsx(HowItWorks, {}), _jsx(SupportedCountries, {}), _jsx(Features, {
-                user: user, onStart: () => { setAuthMode('signup'); setShowAuth(true); }, onDashboard: () => {
+                user: user, onStart: () => { setAuthMode('signup'); setShowAuth(true); }, onFormation: handleFormation, onDashboard: () => {
                     if (dashboardData) {
                         setShowDashboard(true);
                     }
