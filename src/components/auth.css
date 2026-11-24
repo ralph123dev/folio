@@ -167,7 +167,9 @@
     justify-content: center;
     gap: 10px;
     width: 100%;
-    padding: 10px 14px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 14px;
     border: 1px solid #D3D1C7;
     border-radius: 8px;
     color: #26215C;
@@ -185,8 +187,13 @@
     min-width: 0;
   }
 
+  .folio-google-btn {
+    height: 44px;
+  }
+
   .folio-google-btn iframe {
     display: block;
+    height: 44px !important;
   }
 
 .folio-social-btn img {
@@ -682,4 +689,3 @@
     animation: none;
   }
 }
-

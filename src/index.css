@@ -833,6 +833,16 @@ html {
   font-weight: 500;
 }
 
+#pricing .row.g-4.align-items-stretch > .col-lg-4:nth-child(3) .pricing-badge {
+  display: none;
+}
+
+#pricing .row.g-4.align-items-stretch > .col-lg-4:nth-child(3) article::before,
+#pricing .row.g-4.align-items-stretch > .col-lg-4:nth-child(3) article::after {
+  content: none;
+  display: none;
+}
+
 .pricing-price {
   color: var(--folio-title);
   font-family: 'Playfair Display', serif;
